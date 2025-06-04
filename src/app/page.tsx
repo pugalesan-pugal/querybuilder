@@ -1,101 +1,86 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
+
+import React from 'react';
+import Link from 'next/link';
+import styles from './page.module.css';
 
 export default function Home() {
   return (
-    <div className={styles.page}>
+    <div className={styles.container}>
+      <nav className={styles.nav}>
+        <div className={styles.logo}>QueryBuilder</div>
+        <div className={styles.navLinks}>
+          <Link href="/" className={styles.active}>HOME</Link>
+          <Link href="/about">ABOUT US</Link>
+          <Link href="/blog">BLOG</Link>
+          <Link href="/contact">CONTACT</Link>
+          <Link href="/login" className={styles.signIn}>SIGN IN</Link>
+        </div>
+      </nav>
+
+      <div className={styles.socialLinks}>
+        <Link href="https://github.com" target="_blank" className={styles.socialLink}>
+          <i className="fab fa-github"></i>
+        </Link>
+        <Link href="https://twitter.com" target="_blank" className={styles.socialLink}>
+          <i className="fab fa-twitter"></i>
+        </Link>
+        <Link href="https://facebook.com" target="_blank" className={styles.socialLink}>
+          <i className="fab fa-facebook-f"></i>
+        </Link>
+      </div>
+
       <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
+        <div className={styles.heroSection}>
+          <div className={styles.heroContent}>
+            <h1 className={styles.title}>
+              Chatbot
+              <br />
+              Service
+              <span className={styles.subtitle}>Concept</span>
+            </h1>
+            <p className={styles.description}>
+              Experience the next generation of conversational AI with our 
+              intelligent chatbot service. Transform your customer interactions.
+            </p>
+            <button className={styles.demoButton}>
+              VIEW DEMO
+              <span className={styles.arrow}>→</span>
+            </button>
+          </div>
 
+          <div className={styles.heroImage}>
+            <div className={styles.chatInterface}>
+              <div className={styles.messageBot}>
+                <div className={styles.botIcon}>🤖</div>
+                <div className={styles.messageContent}></div>
+              </div>
+              <div className={styles.messageUser}>
+                <div className={styles.userIcon}>👤</div>
+                <div className={styles.messageContent}></div>
+              </div>
+              <div className={styles.messageBot}>
+                <div className={styles.botIcon}>🤖</div>
+                <div className={styles.messageContent}></div>
+              </div>
+              <div className={styles.messageUser}>
+                <div className={styles.userIcon}>👤</div>
+                <div className={styles.messageContent}></div>
+              </div>
+              <div className={styles.messageBot}>
+                <div className={styles.botIcon}>🤖</div>
+                <div className={styles.messageContent}></div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-
-        
-
-        
-        <ol>
-          <li>
-            Get started by editing <code>src/app/page.tsx</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
+        <div className={styles.hexagonGrid}>
+          {Array(6).fill(0).map((_, i) => (
+            <div key={i} className={styles.hexagon}></div>
+          ))}
         </div>
       </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }

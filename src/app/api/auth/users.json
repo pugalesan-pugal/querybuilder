@@ -1,0 +1,30 @@
+[
+  {
+    "id": "1",
+    "name": "Admin User",
+    "email": "admin@example.com",
+    "password": "admin123",
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "2",
+    "name": "Pugalesan",
+    "email": "pugalesan2004@gmail.com",
+    "password": "PUGAL123",
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "1748882547406",
+    "name": "MADHU SANKAR S",
+    "email": "pfidgndego@gmail.com",
+    "password": "efhbewbfewhfb",
+    "createdAt": "2025-06-02T16:42:27.406Z"
+  },
+  {
+    "id": "1748882648425",
+    "name": "megh",
+    "email": "ggs@gmail.com",
+    "password": "afasgs",
+    "createdAt": "2025-06-02T16:44:08.425Z"
+  }
+]
