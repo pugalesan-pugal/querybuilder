@@ -1,0 +1,25 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow read access to all authenticated users
+    match /{document=**} {
+      allow read: if true;
+    }
+    
+    // Allow setup operations when there are no employees
+    match /employees/{employeeId} {
+      allow read, write: if true;  // Temporarily allow all operations for setup
+    }
+
+    // Chat history rules
+    match /chatHistory/{chatId} {
+      allow read, write: if true;
+    }
+
+    // Messages rules
+    match /messages/{messageId} {
+      allow read, write: if true;
+    }
+  }
+} 

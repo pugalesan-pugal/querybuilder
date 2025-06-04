@@ -1,13 +1,13 @@
 :root {
+  --primary-color: #7C3AED;
+  --secondary-color: #4F46E5;
+  --background-dark: #1E1E2E;
+  --background-light: #F8FAFC;
+  --text-light: #F8FAFC;
+  --text-dark: #1E1E2E;
+  --transition-speed: 0.3s;
   --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --foreground: #1E1E2E;
 }
 
 html,
@@ -35,8 +35,4 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
-}
+/* Remove dark mode for now to ensure consistent colors */
