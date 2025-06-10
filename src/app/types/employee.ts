@@ -13,6 +13,7 @@ export interface Employee {
   Salary: string;
   accessCode?: string;
   role?: string; // Role for access control
+  isActive?: boolean; // Track if the employee account is active
   permissions?: {
     canViewAllChats: boolean;
     canDeleteChats: boolean;

@@ -6,12 +6,13 @@ import { auth } from '../login/firebase';
 import { initFirebase } from '../utils/initFirebase';
 import { collection, addDoc, query, where, orderBy, onSnapshot, doc, getDocs, updateDoc, FirestoreError, deleteDoc, writeBatch } from 'firebase/firestore';
 import styles from './page.module.css';
-import { FiSend, FiPlus, FiLogOut, FiUser, FiTrash2, FiEdit2, FiCheck, FiX } from 'react-icons/fi';
+import { FiSend, FiPlus, FiLogOut, FiUser, FiTrash2, FiEdit2, FiCheck, FiX, FiDownload } from 'react-icons/fi';
 import { RiRobot2Fill } from 'react-icons/ri';
 import type { Employee } from '../types/employee';
 import LoadingOverlay from '../components/LoadingOverlay';
 import { GeminiChat } from '../utils/gemini';
 import { HRAssistant } from '../utils/hrAssistant';
+import { DataAnalytics } from '../utils/dataAnalytics';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -31,6 +32,10 @@ interface ChatMessage {
   userId: string;
   chatId: string;
   department?: string;
+  downloadOptions?: {
+    excel: boolean;
+    pdf: boolean;
+  };
 }
 
 interface ChatHistory {
@@ -58,6 +63,8 @@ export default function ChatPage() {
   const router = useRouter();
   const [geminiChat, setGeminiChat] = useState<GeminiChat | null>(null);
   const [isTyping, setIsTyping] = useState(false);
+  const [dataAnalytics, setDataAnalytics] = useState<DataAnalytics | null>(null);
+  const [downloadableData, setDownloadableData] = useState<any>(null);
 
   useEffect(() => {
     try {
@@ -178,7 +185,8 @@ export default function ChatPage() {
               isUser: data.isUser,
               userId: data.userId,
               chatId: data.chatId,
-              department: data.department
+              department: data.department,
+              downloadOptions: data.downloadOptions
             });
           });
           setMessages(msgs);
@@ -202,6 +210,15 @@ export default function ChatPage() {
     } catch (error) {
       console.error('Failed to initialize Gemini chat:', error);
       setError(error instanceof Error ? error.message : 'Failed to initialize chat');
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      setDataAnalytics(new DataAnalytics());
+    } catch (error) {
+      console.error('Failed to initialize data analytics:', error);
+      setError(error instanceof Error ? error.message : 'Failed to initialize analytics');
     }
   }, []);
 
@@ -250,12 +267,13 @@ export default function ChatPage() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !currentChatId || !currentUser || !geminiChat) return;
+    if (!newMessage.trim() || !currentChatId || !currentUser || !dataAnalytics) return;
 
     const messageText = newMessage.trim();
     setNewMessage('');
     setIsTyping(true);
-    setError(null); // Clear any previous errors
+    setError(null);
+    setDownloadableData(null);
 
     try {
       const { db } = initFirebase();
@@ -281,30 +299,45 @@ export default function ChatPage() {
       });
 
       try {
-        // Get response from Gemini
-        const response = await geminiChat.sendMessage(messageText);
-
+        // Get response from data analytics
+        console.log('Processing query with user data:', {
+          query: messageText,
+          userRole: currentUser.role,
+          accessCode: currentUser.accessCode
+        });
+        
+        const response = await dataAnalytics.processQuery(messageText, currentUser);
+        console.log('Got response:', response);
+        
         // Add bot response
-        const botResponse = {
-          content: response,
+        const botMessage: any = {
+          content: response.text,
           timestamp: new Date(),
           isUser: false,
           userId: currentUser.id,
           chatId: currentChatId,
-          department: currentUser.department
+          department: currentUser.department,
         };
 
-        await addDoc(messagesRef, botResponse);
+        // Only add downloadOptions if they exist
+        if (response.downloadOptions) {
+          botMessage.downloadOptions = response.downloadOptions;
+        }
+
+        await addDoc(messagesRef, botMessage);
 
         // Update chat history with bot's response
         await updateDoc(chatRef, {
-          lastMessage: response,
+          lastMessage: response.text,
           timestamp: new Date()
         });
+
+        if (response.data) {
+          setDownloadableData(response.data);
+        }
       } catch (error) {
-        console.error('Error getting Gemini response:', error);
+        console.error('Error getting analytics response:', error);
         
-        // Add error message if Gemini fails
         const errorMessage = error instanceof Error 
           ? error.message
           : "I apologize, but I'm having trouble processing your request at the moment. Please try again.";
@@ -329,10 +362,37 @@ export default function ChatPage() {
     }
   };
 
-  const handleDeleteChat = async (chatId: string) => {
-    if (!window.confirm('Are you sure you want to delete this chat?')) return;
+  const handleDownload = async (format: 'excel' | 'pdf') => {
+    if (!downloadableData || !dataAnalytics) return;
 
     try {
+      if (format === 'excel') {
+        const blob = await dataAnalytics.generateExcel(downloadableData);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'data.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+      // TODO: Implement PDF download if needed
+    } catch (error) {
+      console.error('Error downloading data:', error);
+      setError('Failed to download data');
+    }
+  };
+
+  const handleDeleteChat = async (chatId: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent chat selection when clicking delete
+    
+    if (!window.confirm('Are you sure you want to delete this chat? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
       const { db } = initFirebase();
       const batch = writeBatch(db);
 
@@ -353,10 +413,18 @@ export default function ChatPage() {
       if (currentChatId === chatId) {
         setCurrentChatId(null);
         setMessages([]);
+        
+        // If there are other chats, select the most recent one
+        const remainingChats = chatHistory.filter(chat => chat.id !== chatId);
+        if (remainingChats.length > 0) {
+          setCurrentChatId(remainingChats[0].id);
+        }
       }
     } catch (error) {
       console.error('Error deleting chat:', error);
       setError('Failed to delete chat');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -398,6 +466,30 @@ export default function ChatPage() {
       handleTitleUpdate(chatId);
     } else if (e.key === 'Escape') {
       setEditingTitle(null);
+    }
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      const { db } = initFirebase();
+      const messageRef = doc(db, 'messages', messageId);
+      await deleteDoc(messageRef);
+
+      // Update the last message in chat history if needed
+      if (currentChatId && messages.length > 0) {
+        const remainingMessages = messages.filter(m => m.id !== messageId);
+        if (remainingMessages.length > 0) {
+          const lastMessage = remainingMessages[remainingMessages.length - 1];
+          const chatRef = doc(db, 'chatHistory', currentChatId);
+          await updateDoc(chatRef, {
+            lastMessage: lastMessage.content,
+            timestamp: lastMessage.timestamp
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      setError('Failed to delete message');
     }
   };
 
@@ -465,30 +557,32 @@ export default function ChatPage() {
                     </button>
                   </div>
                 ) : (
-                  <div className={styles.titleContainer}>
-                    <h3>{chat.title}</h3>
-                    <button
-                      className={styles.editButton}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditTitle(chat.id, chat.title);
-                      }}
-                    >
-                      <FiEdit2 />
-                    </button>
-                  </div>
+                  <>
+                    <div className={styles.titleContainer}>
+                      <h3>{chat.title}</h3>
+                      <button
+                        className={styles.editButton}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditTitle(chat.id, chat.title);
+                        }}
+                      >
+                        <FiEdit2 />
+                      </button>
+                    </div>
+                    <p>{chat.lastMessage}</p>
+                  </>
                 )}
-                <p>{chat.lastMessage}</p>
               </div>
-              <button
-                className={styles.deleteButton}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteChat(chat.id);
-                }}
-              >
-                <FiTrash2 />
-              </button>
+              <div className={styles.chatItemActions}>
+                <button
+                  className={styles.deleteButton}
+                  onClick={(e) => handleDeleteChat(chat.id, e)}
+                  title="Delete chat"
+                >
+                  <FiTrash2 />
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -504,7 +598,11 @@ export default function ChatPage() {
           <div className={styles.welcome}>
             <RiRobot2Fill className={styles.botIcon} />
             <h1>Welcome to QueryBuilder Bot!</h1>
-            <p>Start a new chat to begin your conversation.</p>
+            <p>
+              {currentUser?.role === 'HR' 
+                ? "Ask me about employee data, new joiners, leave patterns, or work hours analysis."
+                : "Ask me about your leave history or work hours."}
+            </p>
           </div>
         ) : (
           <>
@@ -517,7 +615,36 @@ export default function ChatPage() {
                   }`}
                 >
                   <div className={styles.messageContent}>
+                    <div className={styles.messageHeader}>
+                      <button
+                        className={styles.messageDeleteButton}
+                        onClick={() => handleDeleteMessage(message.id)}
+                        title="Delete message"
+                      >
+                        <FiTrash2 />
+                      </button>
+                    </div>
                     {message.content}
+                    {!message.isUser && message.downloadOptions && (
+                      <div className={styles.downloadOptions}>
+                        {message.downloadOptions.excel && (
+                          <button
+                            className={styles.downloadButton}
+                            onClick={() => handleDownload('excel')}
+                          >
+                            <FiDownload /> Excel
+                          </button>
+                        )}
+                        {message.downloadOptions.pdf && (
+                          <button
+                            className={styles.downloadButton}
+                            onClick={() => handleDownload('pdf')}
+                          >
+                            <FiDownload /> PDF
+                          </button>
+                        )}
+                      </div>
+                    )}
                     <span className={styles.timestamp}>
                       {message.timestamp.toLocaleTimeString()}
                     </span>
@@ -541,7 +668,11 @@ export default function ChatPage() {
                 type="text"
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type your message..."
+                placeholder={
+                  currentUser?.role === 'HR'
+                    ? "Ask about employee data, new joiners, leave patterns, or work hours..."
+                    : "Type here..."
+                }
                 className={styles.input}
                 disabled={isTyping}
               />

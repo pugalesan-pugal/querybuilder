@@ -7,6 +7,7 @@ import { initFirebase } from '../utils/initFirebase';
 import styles from './page.module.css';
 import type { Employee } from '../types/employee';
 import LoadingOverlay from '../components/LoadingOverlay';
+import LoginTransition from '../components/LoginTransition';
 
 const getRolePermissions = (designation: string) => {
   const designation_lower = designation.toLowerCase();
@@ -71,23 +72,32 @@ export default function Login() {
         return;
       }
 
+      // Determine role based on designation
+      let role = 'Employee';
+      const designation_lower = employeeData.Designation.toLowerCase();
+      if (designation_lower.includes('hr') || designation_lower.includes('human resources')) {
+        role = 'HR';
+      }
+
       // Store employee data in localStorage for persistence
       localStorage.setItem('currentUser', JSON.stringify({
         id: employeeDoc.id,
         email: employeeData.Email,
         name: employeeData.Name,
         department: employeeData.Department,
-        designation: employeeData.Designation
+        designation: employeeData.Designation,
+        role: role, // Add the role to the stored data
+        accessCode: accessCode // Add the access code
       }));
 
       // Show loading overlay
       setIsNavigating(true);
 
-      // Add a small delay to show the loading animation
+      // Add a delay to show the transition animation
       setTimeout(() => {
         // Redirect to the chat/bot page
         router.push('/chat');
-      }, 1000);
+      }, 2500); // Increased delay to match animation duration
     } catch (error) {
       console.error('Login error:', error);
       setError('An error occurred during login. Please try again.');
@@ -97,7 +107,9 @@ export default function Login() {
 
   return (
     <>
-      {isNavigating && <LoadingOverlay />}
+      {isNavigating ? (
+        <LoginTransition />
+      ) : (
       <div className={styles.container}>
         <div className={styles.loginBox}>
           <h1 className={styles.title}>Employee Login</h1>
@@ -137,6 +149,7 @@ export default function Login() {
           </form>
         </div>
       </div>
+      )}
     </>
   );
 }

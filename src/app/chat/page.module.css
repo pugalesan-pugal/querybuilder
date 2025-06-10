@@ -121,6 +121,7 @@
 
 .chatItemContent {
   flex: 1;
+  min-width: 0;
 }
 
 .chatItemContent h3 {
@@ -138,21 +139,34 @@
   white-space: nowrap;
 }
 
+.chatItemActions {
+  display: flex;
+  gap: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.chatItem:hover .chatItemActions {
+  opacity: 1;
+}
+
 .deleteButton {
-  background: none;
+  background: rgba(239, 68, 68, 0.1);
   border: none;
-  padding: 0.25rem;
+  padding: 0.5rem;
+  border-radius: 6px;
   cursor: pointer;
-  color: rgba(255, 255, 255, 0.6);
-  transition: all 0.3s ease;
+  color: #ef4444;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .deleteButton:hover {
+  background: rgba(239, 68, 68, 0.2);
   color: #ef4444;
-  transform: scale(1.1);
+  transform: scale(1.05);
 }
 
 .chatArea {
@@ -263,6 +277,48 @@
 
 .messageContent {
   position: relative;
+}
+
+.messageHeader {
+  position: absolute;
+  top: -20px;
+  right: 0;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.messageContent:hover .messageHeader {
+  opacity: 1;
+}
+
+.messageDeleteButton {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--text-color-secondary);
+  opacity: 0.6;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.messageDeleteButton:hover {
+  opacity: 1;
+  color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.1);
+  transform: scale(1.1);
+}
+
+.userMessage .messageDeleteButton {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.userMessage .messageDeleteButton:hover {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 .timestamp {
@@ -455,4 +511,29 @@
 .input:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+}
+
+.downloadOptions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.downloadButton {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border: none;
+  border-radius: 4px;
+  background-color: var(--primary-color);
+  color: white;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.downloadButton:hover {
+  background-color: var(--primary-color-dark);
+  transform: translateY(-1px);
 } 
