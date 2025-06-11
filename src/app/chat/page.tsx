@@ -363,24 +363,25 @@ export default function ChatPage() {
   };
 
   const handleDownload = async (format: 'excel' | 'pdf') => {
-    if (!downloadableData || !dataAnalytics) return;
+    if (!downloadableData) {
+      setError('No data available for download');
+      return;
+    }
 
     try {
-      if (format === 'excel') {
-        const blob = await dataAnalytics.generateExcel(downloadableData);
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'data.xlsx';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
-      // TODO: Implement PDF download if needed
+      const filename = `data_${new Date().toISOString().split('T')[0]}`;
+      const blob = await HRAssistant.downloadData(downloadableData, format, filename);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${filename}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error downloading data:', error);
-      setError('Failed to download data');
+      setError(`Failed to download ${format.toUpperCase()} file. Please try again.`);
     }
   };
 
