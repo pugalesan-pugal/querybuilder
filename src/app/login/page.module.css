@@ -3,8 +3,8 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 2rem;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
   position: relative;
   overflow: hidden;
 }
@@ -34,25 +34,34 @@
 }
 
 .loginBox {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 3rem;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
   width: 100%;
   max-width: 400px;
-  padding: 2.5rem;
-  background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   position: relative;
   z-index: 1;
   animation: fadeIn 0.5s ease-out;
 }
 
 .title {
+  color: #2d3748;
   font-size: 2.5rem;
-  color: white;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  text-align: center;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+  color: #4a5568;
   text-align: center;
   margin-bottom: 2rem;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-size: 1.1rem;
 }
 
 .form {
@@ -67,89 +76,135 @@
   gap: 0.5rem;
 }
 
-.inputGroup label {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.9rem;
+.label {
+  color: #4a5568;
+  font-size: 0.95rem;
   font-weight: 500;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.inputIcon {
+  color: #667eea;
+  font-size: 1.2rem;
 }
 
 .input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  padding: 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
   font-size: 1rem;
   transition: all 0.3s ease;
-  backdrop-filter: blur(5px);
+  background: white;
 }
 
 .input:focus {
   outline: none;
-  border-color: rgba(255, 255, 255, 0.5);
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-.input::placeholder {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.button {
-  width: 100%;
-  padding: 1rem;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+.loginButton {
+  background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
+  padding: 1rem;
+  border: none;
+  border-radius: 12px;
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  position: relative;
+  overflow: hidden;
 }
 
-.button:hover {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.2));
+.loginButton:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.2);
 }
 
-.button:disabled {
-  background: rgba(255, 255, 255, 0.1);
+.loginButton:disabled {
+  opacity: 0.7;
   cursor: not-allowed;
   transform: none;
-  opacity: 0.7;
+}
+
+.loginButton.loading {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
 }
 
 .error {
-  color: #fecaca;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  padding: 1rem;
+  border-radius: 12px;
   font-size: 0.9rem;
   text-align: center;
-  padding: 0.75rem;
-  background: rgba(239, 68, 68, 0.2);
-  border-radius: 8px;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  backdrop-filter: blur(5px);
-  animation: shake 0.5s ease-in-out;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
+.errorDetails {
+  text-align: left;
+}
+
+.errorDetails h3 {
+  color: #ef4444;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.errorDetails p {
+  color: #dc2626;
+  margin-bottom: 0.75rem;
+}
+
+.errorDetails ul {
+  list-style-type: disc;
+  margin-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.errorDetails li {
+  color: #dc2626;
+  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.demoNote {
+  font-style: italic;
+  color: #4b5563;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 
@@ -210,12 +265,6 @@
   to {
     transform: scale(1);
     opacity: 1;
-  }
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
   }
 }
 

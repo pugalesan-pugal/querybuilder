@@ -8,12 +8,9 @@ import {
   Timestamp,
   DocumentData
 } from 'firebase/firestore';
+import { firebaseConfig } from '../login/firebase-config';
 
-// Initialize Firebase (replace with your config)
-const firebaseConfig = {
-  // Your Firebase config here
-};
-
+// Initialize Firebase with the correct config
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 

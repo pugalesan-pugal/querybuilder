@@ -3,19 +3,35 @@ import type { Employee } from '../types/employee';
 
 const initialEmployees: Omit<Employee, 'id'>[] = [
   {
-    email: 'admin@company.com',
+    Email: 'admin@company.com',
     accessCode: 'admin123', // Change this in production
     role: 'Admin',
-    name: 'Admin User',
-    department: 'Administration',
+    Name: 'Admin User',
+    Department: 'Administration',
+    Designation: 'Admin',
+    Age: '35',
+    City: 'New York',
+    'Contact Number': '1234567890',
+    DateOfJoining: '2024-01-01',
+    Experience: 10,
+    Gender: 'Other',
+    Salary: '100000',
     isActive: true,
   },
   {
-    email: 'employee@company.com',
+    Email: 'employee@company.com',
     accessCode: 'emp123', // Change this in production
     role: 'Employee',
-    name: 'Test Employee',
-    department: 'General',
+    Name: 'Test Employee',
+    Department: 'General',
+    Designation: 'Employee',
+    Age: '28',
+    City: 'San Francisco',
+    'Contact Number': '9876543210',
+    DateOfJoining: '2024-01-15',
+    Experience: 5,
+    Gender: 'Other',
+    Salary: '75000',
     isActive: true,
   },
 ];
@@ -27,12 +43,12 @@ export async function setupInitialData() {
     for (const employee of initialEmployees) {
       try {
         await initializeEmployee(employee);
-        console.log(`Successfully created employee: ${employee.email}`);
+        console.log(`Successfully created employee: ${employee.Email}`);
       } catch (error: any) {
         if (error.message === 'Employee already exists') {
-          console.log(`Employee already exists: ${employee.email}`);
+          console.log(`Employee already exists: ${employee.Email}`);
         } else {
-          console.error(`Error creating employee ${employee.email}:`, error);
+          console.error(`Error creating employee ${employee.Email}:`, error);
         }
       }
     }
