@@ -81,7 +81,7 @@ nlp.extend({
 });
 
 const genAI = new GoogleGenerativeAI('AIzaSyAn3gpVHkV1Hix5UocuihdMlQNpWuKiThM');
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-1.0-pro" });
 
 interface QueryIntent {
   primaryIntent: 'employee_search' | 'department_info' | 'attendance' | 'work_hours' | 'joining_info' | 'performance' | 'unknown' | 'personal_info';
@@ -188,7 +188,7 @@ export class DataAnalytics {
     this.dataMasking = new DataMasking();
     this.sqlGenerator = new SQLGenerator();
     this.genAI = new GoogleGenerativeAI('AIzaSyAn3gpVHkV1Hix5UocuihdMlQNpWuKiThM');
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    this.model = this.genAI.getGenerativeModel({ model: "gemini-1.0-pro" });
     this.conversationContext = {
       followUpCount: 0,
       messages: []
@@ -1176,9 +1176,10 @@ export class DataAnalytics {
           
           const result = await this.model.generateContent(prompt);
           const response = await result.response;
+          const text = response.text();
           
           return {
-            text: response.text()
+            text
           };
       }
     } catch (err) {

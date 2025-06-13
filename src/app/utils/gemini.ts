@@ -1,141 +1,122 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Initialize the Gemini API with your API key
-const genAI = new GoogleGenerativeAI('AIzaSyAn3gpVHkV1Hix5UocuihdMlQNpWuKiThM');
+// Initialize Gemini API with API key
+const GEMINI_API_KEY = 'AIzaSyA49DQREkIs1w_-tG1-JjVW01-W7v9Dd60';
 
-// Create a reusable model instance
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // Using 1.5-flash for better rate limits
+// Rate limiting configuration
+const RATE_LIMIT = {
+  maxRequestsPerMinute: 60,
+  maxTokensPerMinute: 60000,
+  retryDelay: 60000, // 1 minute in milliseconds
+  maxRetries: 3
+};
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Rate limiter class
-class RateLimiter {
-  private lastRequestTime: number = 0;
-  private requestCount: number = 0;
-  private readonly resetInterval: number = 60000; // 1 minute
-  private readonly maxRequestsPerMinute: number = 10; // Conservative limit
-
-  constructor() {
-    // Reset counter every minute
-    setInterval(() => {
-      this.requestCount = 0;
-    }, this.resetInterval);
-  }
-
-  async waitForNextRequest(): Promise<void> {
-    const now = Date.now();
-    const timeSinceLastRequest = now - this.lastRequestTime;
-    
-    // If we've hit the rate limit, wait until the next minute
-    if (this.requestCount >= this.maxRequestsPerMinute) {
-      const waitTime = this.resetInterval - (now % this.resetInterval);
-      await delay(waitTime);
-      this.requestCount = 0;
-    }
-    
-    // Ensure minimum 3 second gap between requests
-    if (timeSinceLastRequest < 3000) {
-      await delay(3000 - timeSinceLastRequest);
-    }
-
-    this.lastRequestTime = Date.now();
-    this.requestCount++;
-  }
-}
-
-const rateLimiter = new RateLimiter();
-
-// Test function to verify API connection
-export async function testGeminiConnection(): Promise<{ success: boolean; message: string }> {
-  try {
-    await rateLimiter.waitForNextRequest();
-    const result = await model.generateContent('Hi');
-    const response = await result.response;
-    const text = response.text();
-    return { success: true, message: 'Connection successful!' };
-  } catch (error: any) {
-    console.error('Gemini connection test failed:', error);
-    return { 
-      success: false, 
-      message: error.message?.includes('429') 
-        ? 'Rate limit reached. Please try again in a minute.'
-        : `Connection failed: ${error.message}`
-    };
-  }
-}
-
-interface Message {
-  role: 'user' | 'model';
-  content: string;
-  timestamp: number;
-}
-
-export class GeminiChat {
-  private history: Message[] = [];
-  private readonly maxHistoryAge = 30 * 60 * 1000; // 30 minutes
-  private readonly maxHistoryLength = 10; // Keep only last 10 messages
+export class GeminiService {
+  private genAI: GoogleGenerativeAI;
+  private requestCount: number;
+  private lastRequestTime: number;
+  private tokenCount: number;
 
   constructor() {
-    this.history = [];
+    this.genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    this.requestCount = 0;
+    this.lastRequestTime = 0;
+    this.tokenCount = 0;
   }
 
-  private cleanHistory() {
+  private async sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  private resetCounters(): void {
     const now = Date.now();
-    // Remove old messages and limit history length
-    this.history = this.history
-      .filter(msg => (now - msg.timestamp) < this.maxHistoryAge)
-      .slice(-this.maxHistoryLength);
+    if (now - this.lastRequestTime >= 60000) {
+      this.requestCount = 0;
+      this.tokenCount = 0;
+      this.lastRequestTime = now;
+    }
   }
 
-  async sendMessage(message: string): Promise<string> {
-    try {
-      await rateLimiter.waitForNextRequest();
-
-      // Clean old messages before adding new one
-      this.cleanHistory();
-
-      // Add user message to history
-      this.history.push({ 
-        role: 'user', 
-        content: message,
-        timestamp: Date.now()
-      });
-
-      // Create a minimal context from recent messages
-      const recentMessages = this.history.slice(-4);
-      const prompt = recentMessages
-        .map(msg => `${msg.role}: ${msg.content}`)
-        .join('\n');
-
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-
-      // Add model response to history
-      this.history.push({ 
-        role: 'model', 
-        content: text,
-        timestamp: Date.now()
-      });
-
-      return text;
-    } catch (error: any) {
-      console.error('Error sending message to Gemini:', error);
-      
-      if (error.message?.includes('429')) {
-        return 'I need a short break to respect rate limits. Please try again in about a minute.';
+  private async waitForQuota(): Promise<void> {
+    this.resetCounters();
+    if (this.requestCount >= RATE_LIMIT.maxRequestsPerMinute) {
+      const waitTime = 60000 - (Date.now() - this.lastRequestTime);
+      if (waitTime > 0) {
+        await this.sleep(waitTime);
+        this.resetCounters();
       }
-      
-      return 'Sorry, I encountered an error. Please try again.';
     }
   }
 
-  getHistory(): Message[] {
-    this.cleanHistory(); // Clean before returning
-    return this.history;
+  private async retryWithBackoff(operation: () => Promise<any>, retryCount = 0): Promise<any> {
+    try {
+      await this.waitForQuota();
+      const result = await operation();
+      this.requestCount++;
+      this.lastRequestTime = Date.now();
+      return result;
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.includes('429') && retryCount < RATE_LIMIT.maxRetries) {
+          const delay = RATE_LIMIT.retryDelay * Math.pow(2, retryCount);
+          console.log(`Rate limited. Retrying in ${delay / 1000} seconds...`);
+          await this.sleep(delay);
+          return this.retryWithBackoff(operation, retryCount + 1);
+        }
+      }
+      throw error;
+    }
   }
 
-  clearHistory(): void {
-    this.history = [];
+  async generateBankingResponse(context: string, query: string): Promise<string> {
+    try {
+      const model = this.genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash", // Using the faster model with lower quota impact
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.8,
+          maxOutputTokens: 1024, // Reduced token limit to help with quota
+        }
+      });
+
+      const prompt = `
+You are a banking assistant with access to the following company financial data:
+${context}
+
+User Query: ${query}
+
+Please provide a clear and concise response based on the available data. If specific information is not available in the context, mention that politely.
+
+Format your response in a professional and easy-to-read manner. Use bullet points or sections if it helps organize the information better.
+`;
+
+      const generateResponse = async () => {
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        return response.text();
+      };
+
+      return await this.retryWithBackoff(generateResponse);
+    } catch (error) {
+      console.error('Error generating banking response:', error);
+      throw this.handleError(error);
+    }
+  }
+
+  private handleError(error: unknown): Error {
+    if (error instanceof Error) {
+      if (error.message.includes('API key') || error.message.includes('blocked')) {
+        return new Error('AI service configuration error: API key is not properly set up or has insufficient permissions.');
+      }
+      if (error.message.includes('429') || error.message.includes('quota')) {
+        return new Error('AI service is currently busy. Please try again in a minute.');
+      }
+      if (error.message.includes('not found') || error.message.includes('404')) {
+        return new Error('The AI service is temporarily unavailable. Please try again in a few moments.');
+      }
+      return error;
+    }
+    return new Error('An unexpected error occurred. Please try again.');
   }
 } 

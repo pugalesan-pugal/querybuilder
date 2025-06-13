@@ -1,147 +1,139 @@
-import { initFirebase, clearFirebaseInstance } from './initFirebase';
-import { doc, setDoc, getDoc, collection, getDocs, query, limit, Firestore } from 'firebase/firestore';
-import { FirebaseError } from 'firebase/app';
-import { setupFirebase } from './setupFirebase';
+import { initFirebase } from './initFirebase';
+import { collection, doc, setDoc, getDocs, deleteDoc } from 'firebase/firestore';
+import { getAuth, createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
+import { generateAuthPassword } from './authUtils';
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-async function verifyFirestoreConnection(db: Firestore, retries = 3): Promise<boolean> {
-  for (let i = 0; i < retries; i++) {
-    try {
-      console.log(`Attempt ${i + 1} of ${retries} to verify Firestore connection...`);
-      
-      // Try to read from bank_customers collection
-      const bankCustomersQuery = query(collection(db, 'bank_customers'), limit(1));
-      const snapshot = await getDocs(bankCustomersQuery);
-      console.log('Firestore connection verified via bank_customers collection');
-      return true;
-    } catch (error) {
-      console.error(`Attempt ${i + 1} failed:`, error);
-      if (i < retries - 1) {
-        console.log('Waiting before next attempt...');
-        await delay(1000); // Wait 1 second between attempts
-      }
-    }
+const testCompanies = [
+  {
+    id: 'ABC',
+    name: 'ABC Bank',
+    email: 'admin@abcbank.com',
+    accessCode: 'ABC123',
+    isActive: true
+  },
+  {
+    id: 'XYZ',
+    name: 'XYZ Bank',
+    email: 'admin@xyzbank.com',
+    accessCode: 'XYZ123',
+    isActive: true
   }
-  return false;
-}
+];
+
+const testUsers = [
+  {
+    email: 'pugal@example.com',
+    name: 'Pugal',
+    accessCode: 'ABC123',
+    companyId: 'ABC',
+    role: 'admin',
+    isActive: true
+  },
+  {
+    email: 'john@example.com',
+    name: 'John',
+    accessCode: 'XYZ123',
+    companyId: 'XYZ',
+    role: 'user',
+    isActive: true
+  }
+];
 
 export async function initializeTestData() {
-  console.log('Starting test data initialization...');
-  
   try {
-    // Clear any existing Firebase instance
-    clearFirebaseInstance();
+    console.log('Starting test data initialization...');
+    const { db, auth } = initFirebase();
+
+    // Clear existing data
+    console.log('Clearing existing data...');
     
-    // Initialize and setup Firebase
-    console.log('Setting up Firebase...');
-    await setupFirebase();
-    
-    // Initialize Firebase again to ensure clean state
-    const { db } = initFirebase();
-    console.log('Firebase initialized');
-
-    // Verify Firestore connection with retries
-    const isConnected = await verifyFirestoreConnection(db);
-    if (!isConnected) {
-      throw new Error('Could not establish Firestore connection after multiple attempts');
-    }
-    console.log('Firestore connection verified successfully');
-
-    // Initialize test user in bank_customers collection
-    console.log('Creating test user...');
-    const testUser = {
-      email: 'pugal@example.com',
-      accessCode: 'ABC123',
-      isActive: true,
-      lastLogin: new Date(),
-      companyId: 'demo_company',
-      role: 'user',
-      created: new Date(),
-      name:'pugal'
-    };
-
+    // Clear Firebase Auth users
+    console.log('Clearing Firebase Auth users...');
     try {
-      const userDocRef = doc(db, 'bank_customers', 'pugal@example.com');
-      
-      // First try to get existing user
-      const existingUser = await getDoc(userDocRef);
-      if (existingUser.exists()) {
-        console.log('Updating existing test user...');
-      } else {
-        console.log('Creating new test user...');
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        await deleteUser(currentUser);
       }
-      
-      await setDoc(userDocRef, testUser, { merge: true });
-      console.log('Test user data written');
-      
-      // Verify the user was created
-      const createdUser = await getDoc(userDocRef);
-      if (!createdUser.exists()) {
-        throw new Error('User document was not created successfully');
-      }
-      console.log('Test user verified successfully');
     } catch (error) {
-      console.error('Error with user operations:', error);
-      if (error instanceof FirebaseError && error.code === 'permission-denied') {
-        throw new Error('Permission denied while creating user. Please check Firestore rules.');
-      }
-      throw error;
+      console.log('No existing auth user to delete');
     }
 
-    // Initialize demo company
-    console.log('Creating demo company...');
-    const demoCompany = {
-      name: 'Demo Company',
-      isActive: true,
-      createdAt: new Date(),
-      created: new Date()
-    };
+    // Delete existing bank customers
+    console.log('Clearing Firestore data...');
+    const bankCustomersRef = collection(db, 'bank_customers');
+    const companiesRef = collection(db, 'companies');
 
-    try {
-      const companyDocRef = doc(db, 'companies', 'demo_company');
-      
-      // First try to get existing company
-      const existingCompany = await getDoc(companyDocRef);
-      if (existingCompany.exists()) {
-        console.log('Updating existing demo company...');
-      } else {
-        console.log('Creating new demo company...');
-      }
-      
-      await setDoc(companyDocRef, demoCompany, { merge: true });
-      console.log('Company data written');
-      
-      // Verify the company was created
-      const createdCompany = await getDoc(companyDocRef);
-      if (!createdCompany.exists()) {
-        throw new Error('Company document was not created successfully');
-      }
-      console.log('Demo company verified successfully');
-    } catch (error) {
-      console.error('Error with company operations:', error);
-      if (error instanceof FirebaseError && error.code === 'permission-denied') {
-        throw new Error('Permission denied while creating company. Please check Firestore rules.');
-      }
-      throw error;
+    const existingCustomers = await getDocs(bankCustomersRef);
+    for (const doc of existingCustomers.docs) {
+      await deleteDoc(doc.ref);
+    }
+    console.log('Cleared bank_customers collection');
+
+    const existingCompanies = await getDocs(companiesRef);
+    for (const doc of existingCompanies.docs) {
+      await deleteDoc(doc.ref);
+    }
+    console.log('Cleared companies collection');
+
+    // Initialize companies
+    console.log('Initializing companies...');
+    for (const company of testCompanies) {
+      await setDoc(doc(db, 'companies', company.id), {
+        ...company,
+        createdAt: new Date().toISOString()
+      });
+      console.log(`Created company: ${company.name}`);
     }
 
-    console.log('All test data initialized successfully');
+    // Initialize users in both Firebase Auth and Firestore
+    console.log('Initializing users...');
+    for (const user of testUsers) {
+      // Create Firebase Auth user first
+      const password = generateAuthPassword(user.email, user.accessCode);
+      let firebaseUser;
+      
+      try {
+        console.log(`Creating Firebase Auth user: ${user.email}`);
+        const userCredential = await createUserWithEmailAndPassword(auth, user.email, password);
+        firebaseUser = userCredential.user;
+        console.log(`Created Firebase Auth user: ${user.email} with UID: ${firebaseUser.uid}`);
+      } catch (error: any) {
+        if (error.code === 'auth/email-already-in-use') {
+          console.log(`Firebase Auth user already exists: ${user.email}`);
+          continue; // Skip this user and move to the next one
+        } else {
+          console.error(`Error creating Firebase Auth user: ${user.email}`, error);
+          throw error;
+        }
+      }
+
+      // Create Firestore user document with Firebase Auth UID
+      const userDoc = {
+        ...user,
+        uid: firebaseUser.uid,
+        createdAt: new Date().toISOString(),
+        lastLogin: new Date().toISOString()
+      };
+
+      try {
+        await setDoc(doc(db, 'bank_customers', user.email), userDoc);
+        console.log(`Created Firestore user: ${user.name} (${user.email}) with UID: ${firebaseUser.uid}`);
+      } catch (error) {
+        console.error(`Error creating Firestore user: ${user.email}`, error);
+        // If Firestore creation fails, try to delete the Firebase Auth user
+        try {
+          await deleteUser(firebaseUser);
+        } catch (deleteError) {
+          console.error(`Error cleaning up Firebase Auth user after Firestore failure: ${user.email}`, deleteError);
+        }
+        throw error;
+      }
+    }
+
+    console.log('Test data initialization completed successfully');
     return true;
   } catch (error) {
-    console.error('Error in initializeTestData:', error);
-    if (error instanceof FirebaseError) {
-      switch (error.code) {
-        case 'permission-denied':
-          throw new Error('Firebase permission denied. Please check Firestore rules and try again.');
-        case 'not-found':
-          throw new Error('Firebase project not found. Please check your configuration.');
-        case 'failed-precondition':
-          throw new Error('Firebase operation failed. Database may not be initialized.');
-        default:
-          throw new Error(`Firebase error: ${error.message}`);
-      }
-    }
+    console.error('Error initializing test data:', error);
     throw error;
   }
 } 

@@ -20,7 +20,7 @@ const nextConfig = {
     }
     return config;
   },
-  transpilePackages: ['firebase', '@firebase/auth'],
+  transpilePackages: ['firebase', '@firebase/auth']
 };
 
 module.exports = nextConfig; 

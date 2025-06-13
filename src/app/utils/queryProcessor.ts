@@ -1,11 +1,11 @@
-import { GeminiChat } from './gemini';
+import { GeminiService } from './gemini';
 
 export class QueryProcessor {
-  private static geminiChat: GeminiChat | null = null;
+  private static geminiService: GeminiService | null = null;
 
   private static initializeGemini() {
-    if (!this.geminiChat) {
-      this.geminiChat = new GeminiChat();
+    if (!this.geminiService) {
+      this.geminiService = new GeminiService();
     }
   }
 
@@ -13,7 +13,7 @@ export class QueryProcessor {
     try {
       this.initializeGemini();
 
-      if (!this.geminiChat) {
+      if (!this.geminiService) {
         throw new Error('Failed to initialize chat service');
       }
 
@@ -21,7 +21,7 @@ export class QueryProcessor {
       const contextualizedQuery = `[Company ID: ${companyId}] ${query}`;
       
       // Process the query through Gemini
-      const response = await this.geminiChat.sendMessage(contextualizedQuery);
+      const response = await this.geminiService.sendMessage(contextualizedQuery);
       
       return response;
 
