@@ -32,6 +32,16 @@
   color: #666;
 }
 
+.companyId {
+  font-size: 14px;
+  color: #666;
+  margin-top: 5px;
+  padding: 4px 8px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+}
+
 .newChatButton {
   padding: 12px 20px;
   background-color: #007bff;
@@ -65,6 +75,9 @@
   cursor: pointer;
   transition: background-color 0.2s;
   background-color: #f8f9fa;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
 }
 
 .chatHistoryItem:hover {
@@ -154,6 +167,7 @@
   margin-top: 20px;
   display: flex;
   gap: 10px;
+  padding: 20px;
 }
 
 .input {
@@ -197,6 +211,7 @@
   align-items: center;
   text-align: center;
   color: #666;
+  padding: 20px;
 }
 
 .welcome h1 {
@@ -250,4 +265,105 @@
   border-radius: 6px;
   color: #0056b3;
   font-size: 14px;
+}
+
+.chatContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.chatActions {
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.chatHistoryItem:hover .chatActions {
+  opacity: 1;
+}
+
+.chatActionButton {
+  padding: 6px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.chatActionButton:hover {
+  background-color: #e9ecef;
+  color: #007bff;
+}
+
+.chatActionButton.deleteButton:hover {
+  color: #dc3545;
+}
+
+.chatActionButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chatEditForm {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 4px;
+  background-color: #fff;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.chatEditInput {
+  flex: 1;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  background: transparent;
+  color: #333;
+}
+
+.chatEditInput:focus {
+  outline: none;
+}
+
+.chatEditActions {
+  display: flex;
+  gap: 4px;
+}
+
+.chatEditConfirm,
+.chatEditCancel {
+  padding: 4px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.chatEditConfirm {
+  color: #28a745;
+}
+
+.chatEditConfirm:hover {
+  background-color: #e9ecef;
+}
+
+.chatEditCancel {
+  color: #dc3545;
+}
+
+.chatEditCancel:hover {
+  background-color: #e9ecef;
 } 

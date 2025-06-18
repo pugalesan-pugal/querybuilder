@@ -25,10 +25,8 @@ export interface WorkingCapital {
 export interface Loan {
   type: string;
   amount: number;
-  interestRate: number;
-  tenure: number;
-  currency: string;
-  status: 'active' | 'closed' | 'pending';
+  interest_rate: number;
+  tenure_months: number;
 }
 
 export interface Finance {
@@ -126,46 +124,85 @@ export interface CompanyData {
 }
 
 export interface BankCustomer {
+  id?: string;
   email: string;
   name: string;
   companyId: string;
-  role: 'admin' | 'user';
+  company?: CompanyData;
+  role: 'user' | 'admin';
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  lastLogin: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  lastLogin?: string;
 }
 
 export interface BankData {
-  npn_report: NpnReport;
-  account_types: AccountType[];
-  working_capital: WorkingCapital;
-  loans: Loan[];
-  finance: Finance[];
-  payments: Payment[];
-  letter_of_credit: LetterOfCredit[];
-  bank_guarantees: BankGuarantee[];
-  import_export: ImportExport[];
-  credit_reports: CreditReport[];
-  cash_management: CashManagement[];
-  treasury_services: TreasuryService[];
+  company_info: {
+    name: string;
+    id: string;
+  };
+  financial_services: {
+    working_capital?: {
+      limit: number;
+      utilized: number;
+      utilization_percentage?: number;
+      last_review_date?: string;
+    };
+    trade_finance?: {
+      bank_guarantees?: {
+        limit: number;
+        utilized: number;
+      };
+      letter_of_credit?: {
+        limit: number;
+        utilized: number;
+      };
+      import_export?: {
+        export_credit_limit: number;
+        import_lc_limit: number;
+      };
+    };
+  };
+  loans?: Loan[];
+  account_types?: string[];
+  payment_methods?: string[];
+  treasury_services?: {
+    derivatives: boolean;
+    forex_dealing: boolean;
+    forward_contracts: boolean;
+  };
 }
 
 export interface BankQueryIntent {
-  primaryIntent: 'npn_report' | 'account_types' | 'working_capital' | 'loans' | 
-                'finance' | 'payments' | 'letter_of_credit' | 'bank_guarantees' | 
-                'import_export' | 'credit_reports' | 'cash_management' | 'treasury_services';
-  subIntent?: string;
-  filters?: {
-    dateRange?: {
-      start: Date;
-      end: Date;
+  type: 'working_capital' | 'company_info' | 'npn_report' | 'financial_data';
+  parameters?: {
+    [key: string]: any;
+  };
+}
+
+export interface CompanyData {
+  id: string;
+  name: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  services: {
+    working_capital?: {
+      limit: number;
+      utilized: number;
+      last_review_date: string;
     };
-    status?: string;
-    type?: string;
-    amount?: {
-      min?: number;
-      max?: number;
+    trade_finance?: {
+      bank_guarantees?: {
+        limit: number;
+        utilized: number;
+      };
+      letter_of_credit?: {
+        limit: number;
+        utilized: number;
+      };
     };
   };
+  loans?: Loan[];
+  account_types?: string[];
 } 

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthService } from '../utils/auth';
 import styles from './page.module.css';
+import LoginTransition from '../components/LoginTransition';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -20,8 +21,12 @@ export default function LoginPage() {
 
     try {
       await auth.login(email, password);
-      router.push('/chat');
+      // Keep loading true for the transition animation
+      setTimeout(() => {
+        router.push('/chat');
+      }, 2500); // Match the duration of the transition animation
     } catch (error: any) {
+      setLoading(false);
       console.error('Login error:', error);
       if (error.code === 'auth/user-not-found') {
         setError('User not found. Please check your email.');
@@ -32,48 +37,52 @@ export default function LoginPage() {
       } else {
         setError(error.message || 'An error occurred during login.');
       }
-    } finally {
-      setLoading(false);
     }
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.loginBox}>
-        <h1>Login</h1>
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <div className={styles.inputGroup}>
-            <label htmlFor="email">Email</label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className={styles.input}
-            />
+    <>
+      {loading ? (
+        <LoginTransition />
+      ) : (
+        <div className={styles.container}>
+          <div className={styles.loginBox}>
+            <h1>Login</h1>
+            <form onSubmit={handleSubmit} className={styles.form}>
+              <div className={styles.inputGroup}>
+                <label htmlFor="email">Email</label>
+                <input
+                  type="email"
+                  id="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className={styles.input}
+                />
+              </div>
+              <div className={styles.inputGroup}>
+                <label htmlFor="password">Password</label>
+                <input
+                  type="password"
+                  id="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className={styles.input}
+                />
+              </div>
+              {error && <div className={styles.error}>{error}</div>}
+              <button
+                type="submit"
+                disabled={loading}
+                className={`${styles.button} ${loading ? styles.loading : ''}`}
+              >
+                Login
+              </button>
+            </form>
           </div>
-          <div className={styles.inputGroup}>
-            <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className={styles.input}
-            />
-          </div>
-          {error && <div className={styles.error}>{error}</div>}
-          <button
-            type="submit"
-            disabled={loading}
-            className={`${styles.button} ${loading ? styles.loading : ''}`}
-          >
-            {loading ? 'Logging in...' : 'Login'}
-          </button>
-        </form>
-      </div>
-    </div>
+        </div>
+      )}
+    </>
   );
 }

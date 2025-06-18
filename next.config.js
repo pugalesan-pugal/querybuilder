@@ -20,7 +20,13 @@ const nextConfig = {
     }
     return config;
   },
-  transpilePackages: ['firebase', '@firebase/auth']
+  transpilePackages: ['firebase', '@firebase/auth'],
+  // Enable SWC minification
+  swcMinify: true,
+  // Ensure CSS modules work correctly
+  images: {
+    domains: ['localhost']
+  }
 };
 
 module.exports = nextConfig; 

@@ -1,6 +1,12 @@
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideIn {
@@ -25,12 +31,17 @@
 }
 
 .container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  background: #f8fafc;
+  background-color: #ffffff;
+  z-index: 9999;
 }
 
 .content {
@@ -69,13 +80,14 @@
 
 .spinner {
   display: flex;
-  gap: 0.5rem;
+  gap: 8px;
+  margin-bottom: 20px;
 }
 
 .dot {
   width: 12px;
   height: 12px;
-  background-color: #2563eb;
+  background-color: #2196f3;
   border-radius: 50%;
   animation: bounce 1.4s infinite ease-in-out both;
 }
@@ -89,9 +101,9 @@
 }
 
 .text {
-  margin-top: 1rem;
-  color: #6b7280;
-  font-size: 0.875rem;
+  color: #666;
+  font-size: 1rem;
+  animation: fadeIn 0.5s ease-out;
 }
 
 @keyframes bounce {

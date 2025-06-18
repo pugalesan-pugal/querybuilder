@@ -1,5 +1,6 @@
-import { initializeApp, getApps } from 'firebase/app';
+import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBVwkSdXiPx2GHWRqEhe1-ZNBboNIMbyGc",
@@ -11,7 +12,20 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-export const db = getFirestore(app);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
 
+// Set environment variables
+if (typeof window !== 'undefined') {
+  (window as any).process = {
+    ...((window as any).process || {}),
+    env: {
+      ...((window as any).process?.env || {}),
+      NEXT_PUBLIC_GEMINI_API_KEY: "AIzaSyDPl7JHgiBFrQ6qGUP1prtaHlupgoHPldg"
+    }
+  };
+}
+
+export { db, auth };
 export default app; 

@@ -9,6 +9,7 @@ import styles from './page.module.css';
 import { BankCustomer } from '../types/bankTypes';
 import { collection, query, where, orderBy, onSnapshot, Timestamp, FirestoreError } from 'firebase/firestore';
 import { db } from '../utils/initFirebase';
+import { FiEdit2, FiTrash2, FiCheck, FiX } from 'react-icons/fi';
 
 interface Message {
   id: string;
@@ -41,6 +42,9 @@ export default function ChatPage() {
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [bankQueryService, setBankQueryService] = useState<BankQueryService | null>(null);
   const [isIndexBuilding, setIsIndexBuilding] = useState(false);
+  const [editingChatId, setEditingChatId] = useState<string | null>(null);
+  const [newChatTitle, setNewChatTitle] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -53,6 +57,12 @@ export default function ChatPage() {
   useEffect(() => {
     if (user) {
       const bankCustomer = user as unknown as BankCustomer;
+      console.log('Initializing BankQueryService with customer:', {
+        email: bankCustomer.email,
+        companyId: bankCustomer.companyId,
+        name: bankCustomer.name,
+        company: bankCustomer.company
+      });
       setBankQueryService(new BankQueryService(bankCustomer.companyId, bankCustomer.email));
     }
   }, [user]);
@@ -118,7 +128,9 @@ export default function ChatPage() {
         // Scroll to bottom
         const messagesDiv = document.querySelector(`.${styles.messages}`);
         if (messagesDiv) {
-          messagesDiv.scrollTop = messagesDiv.scrollHeight;
+          setTimeout(() => {
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+          }, 100);
         }
       },
       (error) => {
@@ -129,6 +141,13 @@ export default function ChatPage() {
 
     return () => unsubscribe();
   }, [currentChatId, user]);
+
+  // Create a new chat if none exists
+  useEffect(() => {
+    if (!bankQueryService || chatHistory.length > 0 || isIndexBuilding) return;
+    
+    createNewChat();
+  }, [bankQueryService, chatHistory, isIndexBuilding]);
 
   const createNewChat = async () => {
     if (!bankQueryService) return;
@@ -146,19 +165,76 @@ export default function ChatPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputMessage.trim() || isProcessing || !user || !currentChatId || !bankQueryService) return;
+    console.log('Form submitted:', { inputMessage, isProcessing, user, currentChatId, bankQueryService });
+    
+    if (!inputMessage.trim()) {
+      console.log('No input message');
+      return;
+    }
+    if (isProcessing) {
+      console.log('Already processing');
+      return;
+    }
+    if (!user) {
+      console.log('No user');
+      return;
+    }
+    if (!currentChatId) {
+      console.log('No current chat ID');
+      return;
+    }
+    if (!bankQueryService) {
+      console.log('No bank query service');
+      return;
+    }
 
     setInputMessage('');
     setIsProcessing(true);
     setError(null);
 
     try {
+      console.log('Processing query:', inputMessage.trim());
       await bankQueryService.processQuery(inputMessage.trim(), currentChatId);
+      console.log('Query processed successfully');
     } catch (err) {
       console.error('Error processing query:', err);
       setError(err instanceof Error ? err.message : 'An error occurred while processing your query');
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleRenameChat = async (chatId: string) => {
+    if (!bankQueryService || !newChatTitle.trim()) return;
+
+    try {
+      await bankQueryService.renameChat(chatId, newChatTitle.trim());
+      setEditingChatId(null);
+      setNewChatTitle('');
+    } catch (err) {
+      console.error('Error renaming chat:', err);
+      setError('Failed to rename chat');
+    }
+  };
+
+  const handleDeleteChat = async (chatId: string) => {
+    if (!bankQueryService || isDeleting) return;
+
+    const confirmDelete = window.confirm('Are you sure you want to delete this chat? This action cannot be undone.');
+    if (!confirmDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await bankQueryService.deleteChat(chatId);
+      if (currentChatId === chatId) {
+        setCurrentChatId(null);
+        setMessages([]);
+      }
+    } catch (err) {
+      console.error('Error deleting chat:', err);
+      setError('Failed to delete chat');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -186,6 +262,7 @@ export default function ChatPage() {
         <div className={styles.userInfo}>
           <div className={styles.userName}>{bankCustomer.name}</div>
           <div className={styles.userEmail}>{bankCustomer.email}</div>
+          <div className={styles.companyId}>Company ID: {bankCustomer.companyId}</div>
         </div>
         <button 
           onClick={createNewChat} 
@@ -205,19 +282,87 @@ export default function ChatPage() {
             <div
               key={chat.id}
               className={`${styles.chatHistoryItem} ${currentChatId === chat.id ? styles.active : ''}`}
-              onClick={() => setCurrentChatId(chat.id)}
             >
-              <div className={styles.chatTitle}>
-                {chat.title || 'New Chat'}
+              <div 
+                className={styles.chatContent}
+                onClick={() => setCurrentChatId(chat.id)}
+              >
+                {editingChatId === chat.id ? (
+                  <div className={styles.chatEditForm}>
+                    <input
+                      type="text"
+                      value={newChatTitle}
+                      onChange={(e) => setNewChatTitle(e.target.value)}
+                      placeholder="Enter chat title"
+                      className={styles.chatEditInput}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <div className={styles.chatEditActions}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRenameChat(chat.id);
+                        }}
+                        className={styles.chatEditConfirm}
+                        type="button"
+                      >
+                        <FiCheck />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingChatId(null);
+                          setNewChatTitle('');
+                        }}
+                        className={styles.chatEditCancel}
+                        type="button"
+                      >
+                        <FiX />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className={styles.chatTitle}>
+                      {chat.title || 'New Chat'}
+                    </div>
+                    <div className={styles.chatLastMessage}>
+                      {chat.lastMessage || 'No messages yet'}
+                    </div>
+                    <div className={styles.chatTimestamp}>
+                      {chat.lastMessageTimestamp 
+                        ? new Date(chat.lastMessageTimestamp.seconds * 1000).toLocaleString()
+                        : new Date(chat.createdAt.seconds * 1000).toLocaleString()
+                      }
+                    </div>
+                  </>
+                )}
               </div>
-              <div className={styles.chatLastMessage}>
-                {chat.lastMessage || 'No messages yet'}
-              </div>
-              <div className={styles.chatTimestamp}>
-                {chat.lastMessageTimestamp 
-                  ? new Date(chat.lastMessageTimestamp.seconds * 1000).toLocaleString()
-                  : new Date(chat.createdAt.seconds * 1000).toLocaleString()
-                }
+              <div className={styles.chatActions}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingChatId(chat.id);
+                    setNewChatTitle(chat.title || 'New Chat');
+                  }}
+                  className={styles.chatActionButton}
+                  title="Rename chat"
+                  type="button"
+                >
+                  <FiEdit2 />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteChat(chat.id);
+                  }}
+                  className={`${styles.chatActionButton} ${styles.deleteButton}`}
+                  title="Delete chat"
+                  disabled={isDeleting}
+                  type="button"
+                >
+                  <FiTrash2 />
+                </button>
               </div>
             </div>
           ))}
