@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AuthService } from '../utils/auth';
+import { CustomAuthService } from '../utils/customAuth';
 import styles from './page.module.css';
 import LoginTransition from '../components/LoginTransition';
 
@@ -12,7 +12,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const auth = AuthService.getInstance();
+  const auth = CustomAuthService.getInstance();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,15 +28,7 @@ export default function LoginPage() {
     } catch (error: any) {
       setLoading(false);
       console.error('Login error:', error);
-      if (error.code === 'auth/user-not-found') {
-        setError('User not found. Please check your email.');
-      } else if (error.code === 'auth/wrong-password') {
-        setError('Invalid password. Please try again.');
-      } else if (error.code === 'auth/invalid-credential') {
-        setError('Invalid credentials. Please check your email and password.');
-      } else {
-        setError(error.message || 'An error occurred during login.');
-      }
+      setError(error.message || 'An error occurred during login.');
     }
   };
 
@@ -46,6 +38,15 @@ export default function LoginPage() {
         <LoginTransition />
       ) : (
         <div className={styles.container}>
+          {/* Background Animations */}
+          <div className={styles.orb1} />
+          <div className={styles.orb2} />
+          <div className={styles.orb3} />
+          <div className={styles.orb4} />
+          <div className={styles.shootingStar} />
+          <div className={styles.shootingStar} />
+          <div className={styles.shootingStar} />
+          
           <div className={styles.loginBox}>
             <h1>Login</h1>
             <form onSubmit={handleSubmit} className={styles.form}>
@@ -58,6 +59,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   className={styles.input}
+                  placeholder="Enter your email"
                 />
               </div>
               <div className={styles.inputGroup}>
@@ -69,6 +71,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   className={styles.input}
+                  placeholder="Enter your password"
                 />
               </div>
               {error && <div className={styles.error}>{error}</div>}

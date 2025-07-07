@@ -1,26 +1,360 @@
+.variables {
+  --lava-blue: #004C99;
+  --carbon-steel-grey-matte: #2C3539;
+  --rising-blue-metallic: #0066CC;
+  --carbon-steel-grey: #42474B;
+  --deep-black-pearl: #1A1C20;
+  --reflex-silver: #C0C0C0;
+  --candy-white: #F8F8F8;
+  --wild-cherry-red: #D2042D;
+  --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .container {
+  composes: variables;
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #1a365d 0%, #2d3748 100%);
+  background: linear-gradient(135deg, var(--deep-black-pearl) 0%, var(--lava-blue) 100%);
+  background-size: 200% 200%;
+  animation: gradientShift 15s ease infinite;
   padding: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Twinkling Stars Layer */
+.container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(2px 2px at 40px 60px, var(--candy-white), rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 80px 120px, var(--candy-white), rgba(0,0,0,0)),
+    radial-gradient(3px 3px at 120px 180px, var(--candy-white), rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 160px 240px, var(--candy-white), rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 200px 300px, var(--candy-white), rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 240px 360px, var(--candy-white), rgba(0,0,0,0)),
+    radial-gradient(3px 3px at 280px 420px, var(--candy-white), rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 320px 480px, var(--candy-white), rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 360px 540px, var(--candy-white), rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 400px 600px, var(--candy-white), rgba(0,0,0,0));
+  background-repeat: repeat;
+  background-size: 400px 600px;
+  animation: twinkle 4s ease-in-out infinite alternate;
+  opacity: 0.3;
+}
+
+/* Floating Particles Layer */
+.container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(4px 4px at 100px 100px, var(--rising-blue-metallic), rgba(0,0,0,0)),
+    radial-gradient(6px 6px at 200px 200px, var(--rising-blue-metallic), rgba(0,0,0,0)),
+    radial-gradient(3px 3px at 300px 300px, var(--rising-blue-metallic), rgba(0,0,0,0)),
+    radial-gradient(5px 5px at 400px 400px, var(--rising-blue-metallic), rgba(0,0,0,0)),
+    radial-gradient(4px 4px at 500px 500px, var(--rising-blue-metallic), rgba(0,0,0,0)),
+    radial-gradient(6px 6px at 50px 600px, var(--rising-blue-metallic), rgba(0,0,0,0)),
+    radial-gradient(3px 3px at 150px 650px, var(--rising-blue-metallic), rgba(0,0,0,0)),
+    radial-gradient(4px 4px at 250px 700px, var(--rising-blue-metallic), rgba(0,0,0,0)),
+    radial-gradient(5px 5px at 350px 750px, var(--rising-blue-metallic), rgba(0,0,0,0)),
+    radial-gradient(4px 4px at 450px 800px, var(--rising-blue-metallic), rgba(0,0,0,0));
+  background-size: 800px 800px;
+  animation: floatMultiDirection 12s linear infinite;
+  opacity: 0.2;
+}
+
+/* Add floating orbs */
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(8px);
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+.orb1 {
+  composes: orb;
+  width: 300px;
+  height: 300px;
+  background: var(--rising-blue-metallic);
+  top: -150px;
+  right: -150px;
+  animation: orbFloat1 20s ease-in-out infinite;
+}
+
+.orb2 {
+  composes: orb;
+  width: 250px;
+  height: 250px;
+  background: var(--lava-blue);
+  bottom: -100px;
+  left: -100px;
+  animation: orbFloat2 18s ease-in-out infinite;
+}
+
+.orb3 {
+  composes: orb;
+  width: 200px;
+  height: 200px;
+  background: var(--rising-blue-metallic);
+  top: 50%;
+  left: -100px;
+  animation: orbFloat3 15s ease-in-out infinite;
+}
+
+.orb4 {
+  composes: orb;
+  width: 180px;
+  height: 180px;
+  background: var(--lava-blue);
+  bottom: 20%;
+  right: -90px;
+  animation: orbFloat4 17s ease-in-out infinite;
+}
+
+/* Multiple shooting stars in different directions */
+.shootingStar {
+  position: absolute;
+  width: 100px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--candy-white), transparent);
+  opacity: 0;
+}
+
+.shootingStar:nth-child(1) {
+  top: 20%;
+  left: 0;
+  transform: rotate(-45deg);
+  animation: shootingStarTopLeft 4s linear infinite;
+  animation-delay: 0s;
+}
+
+.shootingStar:nth-child(2) {
+  top: 40%;
+  right: 0;
+  transform: rotate(-135deg);
+  animation: shootingStarTopRight 4s linear infinite;
+  animation-delay: 1s;
+}
+
+.shootingStar:nth-child(3) {
+  bottom: 30%;
+  left: 0;
+  transform: rotate(45deg);
+  animation: shootingStarBottomLeft 4s linear infinite;
+  animation-delay: 2s;
+}
+
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 0.2;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes floatMultiDirection {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(200px, 200px) rotate(5deg);
+  }
+  50% {
+    transform: translate(0, 400px) rotate(0deg);
+  }
+  75% {
+    transform: translate(-200px, 200px) rotate(-5deg);
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+}
+
+@keyframes shootingStarTopLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-100px) translateY(-100px) rotate(-45deg);
+  }
+  10%, 20% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(calc(100vw + 100px)) translateY(calc(100vh + 100px)) rotate(-45deg);
+  }
+}
+
+@keyframes shootingStarTopRight {
+  0% {
+    opacity: 0;
+    transform: translateX(100px) translateY(-100px) rotate(-135deg);
+  }
+  10%, 20% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(calc(-100vw - 100px)) translateY(calc(100vh + 100px)) rotate(-135deg);
+  }
+}
+
+@keyframes shootingStarBottomLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-100px) translateY(100px) rotate(45deg);
+  }
+  10%, 20% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(calc(100vw + 100px)) translateY(calc(-100vh - 100px)) rotate(45deg);
+  }
+}
+
+@keyframes orbFloat1 {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(-30px, 30px) rotate(5deg);
+  }
+  50% {
+    transform: translate(-60px, 0) rotate(10deg);
+  }
+  75% {
+    transform: translate(-30px, -30px) rotate(5deg);
+  }
+}
+
+@keyframes orbFloat2 {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(40px, -40px) rotate(-5deg);
+  }
+  50% {
+    transform: translate(80px, 0) rotate(-10deg);
+  }
+  75% {
+    transform: translate(40px, 40px) rotate(-5deg);
+  }
+}
+
+@keyframes orbFloat3 {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(50px, 20px) rotate(5deg);
+  }
+  50% {
+    transform: translate(100px, 0) rotate(10deg);
+  }
+  75% {
+    transform: translate(50px, -20px) rotate(5deg);
+  }
+}
+
+@keyframes orbFloat4 {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(-40px, 30px) rotate(-5deg);
+  }
+  50% {
+    transform: translate(-80px, 0) rotate(-10deg);
+  }
+  75% {
+    transform: translate(-40px, -30px) rotate(-5deg);
+  }
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 .loginBox {
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  composes: variables;
+  background: rgba(31, 41, 55, 0.4);
+  padding: 2.5rem;
+  border-radius: 24px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 8px 32px rgba(0, 18, 46, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
   width: 100%;
   max-width: 400px;
+  position: relative;
+  z-index: 1;
+  animation: fadeInScale 0.6s var(--transition-smooth);
+}
+
+/* Add subtle pattern overlay */
+.loginBox::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    linear-gradient(45deg, transparent 45%, rgba(255, 255, 255, 0.05) 50%, transparent 55%),
+    linear-gradient(-45deg, transparent 45%, rgba(255, 255, 255, 0.05) 50%, transparent 55%);
+  background-size: 20px 20px;
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0.3;
+}
+
+@keyframes fadeInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .loginBox h1 {
-  margin: 0 0 1.5rem;
-  color: #2d3748;
+  margin: 0 0 2rem;
+  color: var(--candy-white);
   text-align: center;
-  font-size: 1.8rem;
+  font-size: 2.2rem;
+  position: relative;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.loginBox h1::after {
+  content: '';
+  position: absolute;
+  bottom: -0.5rem;
+  left: 50%;
+  width: 60px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--rising-blue-metallic), transparent);
+  transform: translateX(-50%);
 }
 
 .form {
@@ -33,47 +367,101 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  animation: slideUp 0.5s var(--transition-smooth) backwards;
+}
+
+.inputGroup:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+@keyframes slideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .inputGroup label {
-  color: #4a5568;
+  color: var(--candy-white);
   font-size: 0.9rem;
   font-weight: 500;
+  margin-left: 0.5rem;
 }
 
 .input {
-  padding: 0.75rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
   font-size: 1rem;
-  transition: border-color 0.2s;
+  color: var(--candy-white);
+  transition: all 0.3s var(--transition-smooth);
 }
 
 .input:focus {
   outline: none;
-  border-color: #4299e1;
-  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+  border-color: var(--rising-blue-metallic);
+  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.2);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .button {
-  padding: 0.75rem;
-  background-color: #4299e1;
-  color: white;
+  composes: variables;
+  margin-top: 0.5rem;
+  padding: 0.875rem;
+  background: var(--rising-blue-metallic);
+  color: var(--candy-white);
   border: none;
-  border-radius: 4px;
+  border-radius: 12px;
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.3s var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
+  animation: slideUp 0.5s var(--transition-smooth) backwards;
+  animation-delay: 0.2s;
+}
+
+.button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transform: translateX(-100%);
+  transition: transform 0.5s var(--transition-smooth);
+}
+
+.button:hover:not(:disabled)::before {
+  transform: translateX(100%);
 }
 
 .button:hover:not(:disabled) {
-  background-color: #3182ce;
+  background: var(--lava-blue);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
 }
 
 .button:disabled {
-  background-color: #a0aec0;
+  background: var(--carbon-steel-grey);
   cursor: not-allowed;
+  transform: none;
 }
 
 .button.loading {
@@ -84,25 +472,26 @@
 .button.loading::after {
   content: '';
   position: absolute;
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   top: 50%;
   left: 50%;
-  margin: -8px 0 0 -8px;
+  margin: -10px 0 0 -10px;
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
-  border-top-color: white;
+  border-top-color: var(--candy-white);
   animation: spin 0.8s infinite linear;
 }
 
 .error {
-  padding: 0.75rem;
-  background-color: #fed7d7;
-  border: 1px solid #f56565;
-  border-radius: 4px;
-  color: #c53030;
+  padding: 0.75rem 1rem;
+  background: rgba(210, 4, 45, 0.1);
+  border: 1px solid rgba(210, 4, 45, 0.2);
+  border-radius: 12px;
+  color: var(--wild-cherry-red);
   font-size: 0.9rem;
   text-align: center;
+  animation: shake 0.5s var(--transition-smooth);
 }
 
 @keyframes spin {
@@ -110,3 +499,9 @@
     transform: rotate(360deg);
   }
 } 
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}

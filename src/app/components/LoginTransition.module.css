@@ -1,14 +1,49 @@
+/* Variables */
+.variables {
+  --lava-blue: #004C99;
+  --carbon-steel-grey-matte: #2C3539;
+  --rising-blue-metallic: #0066CC;
+  --carbon-steel-grey: #42474B;
+  --deep-black-pearl: #1A1C20;
+  --reflex-silver: #C0C0C0;
+  --candy-white: #F8F8F8;
+  --wild-cherry-red: #D2042D;
+  --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Base styles */
 .overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #ffffff;
+  background: linear-gradient(135deg, #1A1C20 0%, #004C99 100%);
+  background-size: 200% 200%;
+  animation: gradientShift 15s ease infinite;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
+  overflow: hidden;
+}
+
+.overlay::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(2px 2px at 40px 60px, rgba(248, 248, 248, 0.8), rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 80px 120px, rgba(248, 248, 248, 0.8), rgba(0,0,0,0)),
+    radial-gradient(3px 3px at 120px 180px, rgba(248, 248, 248, 0.8), rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 160px 240px, rgba(248, 248, 248, 0.8), rgba(0,0,0,0));
+  background-repeat: repeat;
+  background-size: 400px 400px;
+  animation: twinkle 4s ease-in-out infinite alternate;
+  opacity: 0.2;
 }
 
 .content {
@@ -18,7 +53,34 @@
   gap: 2rem;
   max-width: 400px;
   width: 100%;
-  padding: 2rem;
+  padding: 2.5rem;
+  background: rgba(31, 41, 55, 0.4);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  box-shadow: 
+    0 8px 32px rgba(0, 18, 46, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
+  animation: fadeInScale 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.content::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent,
+    rgba(255, 255, 255, 0.05),
+    transparent
+  );
+  transform: rotate(45deg);
+  animation: shimmer 3s infinite;
 }
 
 .steps {
@@ -26,6 +88,8 @@
   flex-direction: column;
   gap: 2rem;
   width: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 .step {
@@ -33,7 +97,15 @@
   align-items: center;
   gap: 1rem;
   opacity: 0;
-  animation: fadeIn 0.5s ease-out forwards;
+  animation: slideIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  color: #F8F8F8;
+}
+
+.step p {
+  font-size: 1rem;
+  color: #F8F8F8;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .stepDelay1 {
@@ -46,36 +118,61 @@
 
 .iconWrapper {
   position: relative;
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #e3f2fd;
+  background: rgba(0, 102, 204, 0.2);
+  border: 1px solid rgba(0, 102, 204, 0.3);
   border-radius: 50%;
+  backdrop-filter: blur(4px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.iconWrapper::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent,
+    #0066CC,
+    transparent
+  );
+  animation: rotate 2s linear infinite;
+  opacity: 0;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.step:hover .iconWrapper::before {
+  opacity: 1;
 }
 
 .icon {
-  font-size: 20px;
-  color: #2196f3;
+  font-size: 24px;
+  color: #F8F8F8;
+  animation: pulse 2s infinite;
 }
 
 .checkmark {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  width: 20px;
-  height: 20px;
-  background-color: #4caf50;
+  top: -6px;
+  right: -6px;
+  width: 24px;
+  height: 24px;
+  background: #0066CC;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-size: 12px;
+  color: #F8F8F8;
+  font-size: 14px;
   opacity: 0;
   transform: scale(0);
-  animation: scaleIn 0.3s ease-out forwards;
+  animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  box-shadow: 0 2px 8px rgba(0, 102, 204, 0.3);
 }
 
 .step:nth-child(1) .checkmark {
@@ -88,35 +185,114 @@
 
 .progressBar {
   width: 100%;
-  height: 4px;
-  background-color: #e0e0e0;
-  border-radius: 2px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
   overflow: hidden;
   margin-top: 1rem;
+  position: relative;
 }
 
 .progress {
   height: 100%;
-  background-color: #2196f3;
-  animation: progress 2.5s ease-out forwards;
+  background: linear-gradient(
+    90deg,
+    #0066CC,
+    #004C99
+  );
+  animation: progress 2.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  position: relative;
+}
+
+.progress::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  animation: progressShimmer 1.5s linear infinite;
 }
 
 .message {
-  color: #666;
-  font-size: 0.9rem;
+  color: #F8F8F8;
+  font-size: 1rem;
   text-align: center;
   opacity: 0;
-  animation: fadeIn 0.5s ease-out 2s forwards;
+  animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) 2s forwards;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-@keyframes fadeIn {
+/* Animations */
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 0.2;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.3;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes fadeInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%) rotate(45deg);
+  }
+  100% {
+    transform: translateX(100%) rotate(45deg);
+  }
+}
+
+@keyframes slideIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateX(-20px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateX(0);
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
   }
 }
 
@@ -140,5 +316,25 @@
   }
   100% {
     width: 100%;
+  }
+}
+
+@keyframes progressShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 } 

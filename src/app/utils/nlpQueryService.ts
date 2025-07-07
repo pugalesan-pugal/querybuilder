@@ -4,7 +4,8 @@ import { getAuth } from 'firebase/auth';
 import { formatCurrency, formatDate } from './formatUtils';
 
 interface QueryIntent {
-  type: 'company_info' | 'npn_report' | 'financial_data' | 'working_capital' | 'general';
+  type: 'company_info' | 'npn_report' | 'financial_data' | 'working_capital' | 'loan' | 'payment_methods' | 
+        'treasury_services' | 'trade_finance' | 'credit_reports' | 'account_types' | 'general';
   entities: {
     companyId?: string;
     reportType?: string;
@@ -13,6 +14,30 @@ interface QueryIntent {
       end?: Date;
     };
     metric?: string;
+  };
+}
+
+interface QueryResult {
+  data: any;
+  context: string;
+}
+
+interface CompanyData {
+  name: string;
+  id: string;
+  services?: {
+    npn_reports?: {
+      working_capital?: {
+        limit: number;
+        utilized: number;
+        last_review_date?: string;
+      };
+    };
+    working_capital?: {
+      limit: number;
+      utilized: number;
+      last_review_date?: string;
+    };
   };
 }
 
@@ -27,6 +52,151 @@ export class NLPQueryService {
   private async extractIntent(query: string): Promise<QueryIntent> {
     // Basic intent extraction based on keywords
     const lowercaseQuery = query.toLowerCase();
+    
+    // Treasury services detection
+    const treasuryKeywords = [
+      'treasury', 'treasuries',
+      'forward contract', 'forward contracts',
+      'derivative', 'derivatives',
+      'forex', 'foreign exchange'
+    ];
+    
+    const treasuryPatterns = [
+      /treasury.*service/,
+      /service.*treasury/,
+      /show.*treasury/,
+      /tell.*treasury/,
+      /my.*treasury/,
+      /give.*treasury/
+    ];
+    
+    if (treasuryKeywords.some(keyword => lowercaseQuery.includes(keyword)) ||
+        treasuryPatterns.some(pattern => pattern.test(lowercaseQuery))) {
+      console.log('Detected treasury services intent with keyword/pattern match');
+      return {
+        type: 'treasury_services',
+        entities: {
+          companyId: this.companyId
+        }
+      };
+    }
+
+    // Trade finance detection
+    const tradeKeywords = [
+      'trade finance', 'trade financing',
+      'letter of credit', 'lc',
+      'bank guarantee', 'bg',
+      'import', 'export'
+    ];
+    
+    if (tradeKeywords.some(keyword => lowercaseQuery.includes(keyword))) {
+      console.log('Detected trade finance intent');
+      return {
+        type: 'trade_finance',
+        entities: {
+          companyId: this.companyId
+        }
+      };
+    }
+
+    // Credit reports detection
+    const creditKeywords = [
+      'credit report', 'credit score',
+      'credit rating', 'credit history'
+    ];
+    
+    if (creditKeywords.some(keyword => lowercaseQuery.includes(keyword))) {
+      console.log('Detected credit reports intent');
+      return {
+        type: 'credit_reports',
+        entities: {
+          companyId: this.companyId
+        }
+      };
+    }
+
+    // Account types detection
+    const accountKeywords = [
+      'account type', 'account types',
+      'type of account', 'types of account',
+      'banking account', 'bank account'
+    ];
+    
+    if (accountKeywords.some(keyword => lowercaseQuery.includes(keyword))) {
+      console.log('Detected account types intent');
+      return {
+        type: 'account_types',
+        entities: {
+          companyId: this.companyId
+        }
+      };
+    }
+
+    // Payment methods detection
+    const paymentKeywords = [
+      'payment', 'payments',
+      'pay', 'paying',
+      'method', 'methods',
+      'transfer', 'transfers'
+    ];
+    
+    const paymentPatterns = [
+      /how.*pay/,
+      /payment.*method/,
+      /methods.*payment/,
+      /ways.*pay/,
+      /can.*pay/,
+      /show.*payment/,
+      /tell.*payment/,
+      /my.*payment/,
+      /give.*payment/
+    ];
+    
+    if (paymentKeywords.some(keyword => lowercaseQuery.includes(keyword)) ||
+        paymentPatterns.some(pattern => pattern.test(lowercaseQuery))) {
+      console.log('Detected payment methods intent with keyword/pattern match');
+      return {
+        type: 'payment_methods',
+        entities: {
+          companyId: this.companyId
+        }
+      };
+    }
+    
+    // Enhanced loan detection with common misspellings, variations and patterns
+    const loanKeywords = [
+      'loan', 'loans', 
+      'loand', 'loands',  // Common misspellings
+      'borrowing', 'borrowed',
+      'lend', 'lending',
+      'credit', 'credits'
+    ];
+
+    const loanPatterns = [
+      /what.*loan/,
+      /how.*loan/,
+      /loan.*amount/,
+      /amount.*loan/,
+      /amount.*get.*loan/,
+      /amount.*got.*loan/,
+      /get.*loan/,
+      /got.*loan/,
+      /show.*loan/,
+      /tell.*loan/,
+      /my.*loan/
+    ];
+    
+    // Check if any loan-related keyword is present or pattern matches
+    if (loanKeywords.some(keyword => lowercaseQuery.includes(keyword)) ||
+        loanPatterns.some(pattern => pattern.test(lowercaseQuery))) {
+      console.log('Detected loan intent with keyword/pattern match');
+      return {
+        type: 'loan',
+        entities: {
+          companyId: this.companyId
+        }
+      };
+    }
     
     if (lowercaseQuery.includes('working capital') || lowercaseQuery.includes('working_capital')) {
       console.log('Detected working capital intent');
@@ -85,61 +255,18 @@ export class NLPQueryService {
     return 'general';
   }
 
-  private async fetchCompanyData(intent: QueryIntent): Promise<DocumentData | null> {
-    try {
-      console.log('Fetching company data for ID:', this.companyId);
-
-      // Now fetch the company data using the correct companyId
-      const companyRef = doc(db, 'companies', this.companyId);
-      const companyDoc = await getDoc(companyRef);
-
-      if (!companyDoc.exists()) {
-        console.error('Company not found:', this.companyId);
-        return null;
-      }
-
-      const companyData = companyDoc.data();
-      console.log('Raw company data:', JSON.stringify(companyData, null, 2));
-
-      // Extract services data correctly
-      const services = companyData.services || {};
-      console.log('Services data:', JSON.stringify(services, null, 2));
-      
-      // Structure the data in a more readable format for the LLM
-      const structuredData = {
-        company_info: {
-          name: companyData.name,
-          email: companyData.email,
-          id: companyData.id,
-          isActive: companyData.isActive,
-          createdAt: companyData.createdAt,
-          updatedAt: companyData.updatedAt
-        },
-        financial_services: {
-          account_types: services.account_types || [],
-          working_capital: {
-            limit: services.working_capital?.limit || 0,
-            utilized: services.working_capital?.utilized || 0,
-            last_review_date: services.working_capital?.last_review_date || null
-          },
-          loans: services.loans || [],
-          trade_finance: {
-            bank_guarantees: services.trade_finance?.bank_guarantees || {},
-            letter_of_credit: services.trade_finance?.letter_of_credit || {},
-            import_export: services.trade_finance?.import_export || {}
-          },
-          credit_reports: services.credit_reports || {},
-          payment_methods: services.payment_methods || [],
-          treasury_services: services.treasury_services || {}
-        }
-      };
-
-      console.log('Structured data:', JSON.stringify(structuredData, null, 2));
-      return structuredData;
-    } catch (error) {
-      console.error('Error fetching company data:', error);
-      return null;
+  private async fetchCompanyData(): Promise<CompanyData> {
+    const companyRef = doc(db, 'companies', this.companyId);
+    console.log('Fetching company data from path:', companyRef.path);
+    
+    const companyDoc = await getDoc(companyRef);
+    
+    if (!companyDoc.exists()) {
+      console.error('Company not found:', this.companyId);
+      throw new Error('Company data not found');
     }
+
+    return companyDoc.data() as CompanyData;
   }
 
   private async fetchNPNReport(intent: QueryIntent): Promise<DocumentData | null> {
@@ -183,118 +310,193 @@ export class NLPQueryService {
     }
   }
 
-  async processQuery(query: string): Promise<{ data: any; context: string }> {
+  private async processPaymentMethodsQuery(companyData: any): Promise<{ data: any; context: string }> {
+    console.log('Processing payment methods query');
+    
+    // Check if payment methods exist in the correct path
+    const paymentMethods = companyData.services?.npn_reports?.payment_methods;
+    
+    if (!paymentMethods || paymentMethods.length === 0) {
+      return {
+        data: null,
+        context: `${companyData.name}, I couldn't find any payment methods information in your profile. Please contact your relationship manager for information about available payment options.`
+      };
+    }
+
+    return {
+      data: paymentMethods,
+      context: `${companyData.name}, here are your available payment methods:\n\n• ${paymentMethods.join('\n• ')}`
+    };
+  }
+
+  private async processTreasuryServicesQuery(companyData: any): Promise<QueryResult> {
+    console.log('Processing treasury services query');
+    
+    const treasuryServices = companyData.services?.npn_reports?.treasury_services;
+    
+    if (!treasuryServices) {
+      return {
+        data: null,
+        context: `${companyData.name}, I couldn't find any treasury services information in your profile. Please contact your relationship manager for information about available services.`
+      };
+    }
+
+    const servicesList = Object.entries(treasuryServices)
+      .map(([key, value]) => `${key.replace(/_/g, ' ').split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')}: ${value ? '✅ Enabled' : '❌ Not available'}`)
+      .join('\n\n');
+
+    return {
+      data: treasuryServices,
+      context: `Here are your available treasury services:\n\n${servicesList}`
+    };
+  }
+
+  private async processTradeFinanceQuery(companyData: any): Promise<{ data: any; context: string }> {
+    console.log('Processing trade finance query');
+    
+    const tradeFinance = companyData.services?.npn_reports?.trade_finance;
+    
+    if (!tradeFinance) {
+      return {
+        data: null,
+        context: `${companyData.name}, I couldn't find any trade finance information in your profile. Please contact your relationship manager for information about trade finance services.`
+      };
+    }
+
+    let response = `${companyData.name}, here are your trade finance details:\n\n`;
+
+    if (tradeFinance.letter_of_credit) {
+      const lc = tradeFinance.letter_of_credit;
+      response += `Letter of Credit:\n`;
+      response += `• Limit: ${this.formatCurrency(lc.limit)}\n`;
+      response += `• Utilized: ${this.formatCurrency(lc.utilized)} (${((lc.utilized/lc.limit)*100).toFixed(1)}%)\n\n`;
+    }
+
+    if (tradeFinance.bank_guarantees) {
+      const bg = tradeFinance.bank_guarantees;
+      response += `Bank Guarantees:\n`;
+      response += `• Limit: ${this.formatCurrency(bg.limit)}\n`;
+      response += `• Utilized: ${this.formatCurrency(bg.utilized)} (${((bg.utilized/bg.limit)*100).toFixed(1)}%)\n\n`;
+    }
+
+    if (tradeFinance.import_export) {
+      const ie = tradeFinance.import_export;
+      response += `Import/Export Facilities:\n`;
+      response += `• Export Credit Limit: ${this.formatCurrency(ie.export_credit_limit)}\n`;
+      response += `• Import LC Limit: ${this.formatCurrency(ie.import_lc_limit)}`;
+    }
+
+    return {
+      data: tradeFinance,
+      context: response
+    };
+  }
+
+  private async processCreditReportsQuery(companyData: any): Promise<{ data: any; context: string }> {
+    console.log('Processing credit reports query');
+    
+    const creditReports = companyData.services?.npn_reports?.credit_reports;
+    
+    if (!creditReports) {
+      return {
+        data: null,
+        context: `${companyData.name}, I couldn't find any credit report information in your profile. Please contact your relationship manager for credit information.`
+      };
+    }
+
+    const lastUpdated = new Date(creditReports.last_updated).toLocaleDateString();
+    
+    return {
+      data: creditReports,
+      context: `${companyData.name}, here is your credit information:\n\n` +
+              `Credit Score: ${creditReports.credit_score}\n` +
+              `Last Updated: ${lastUpdated}`
+    };
+  }
+
+  private async processAccountTypesQuery(companyData: any): Promise<{ data: any; context: string }> {
+    console.log('Processing account types query');
+    
+    const accountTypes = companyData.services?.npn_reports?.account_types;
+    
+    if (!accountTypes || accountTypes.length === 0) {
+      return {
+        data: null,
+        context: `${companyData.name}, I couldn't find any account type information in your profile. Please contact your relationship manager for information about available account types.`
+      };
+    }
+
+    return {
+      data: accountTypes,
+      context: `${companyData.name}, here are your available account types:\n\n• ${accountTypes.join('\n• ')}`
+    };
+  }
+
+  async processQuery(query: string): Promise<QueryResult> {
     try {
       console.log('NLPQueryService.processQuery started:', { query });
       
-      // Get company data
-      const companyRef = doc(db, 'companies', this.companyId);
-      console.log('Fetching company data from path:', companyRef.path);
-      
-      const companyDoc = await getDoc(companyRef);
-      
-      if (!companyDoc.exists()) {
-        console.error('Company not found:', this.companyId);
-        throw new Error('Company data not found');
+      // Fetch company data
+      const companyData = await this.fetchCompanyData();
+      if (!companyData) {
+        throw new Error('Failed to fetch company data');
       }
 
-      const companyData = companyDoc.data();
       console.log('Raw company data:', JSON.stringify(companyData, null, 2));
+      
+      // Log company data structure for debugging
       console.log('Company data structure:', {
         name: companyData.name,
         id: companyData.id,
         hasServices: !!companyData.services,
         servicesKeys: companyData.services ? Object.keys(companyData.services) : [],
-        hasWorkingCapital: !!companyData.services?.working_capital,
-        workingCapitalData: companyData.services?.working_capital,
-        hasLoans: !!companyData.loans?.length,
-        loansData: companyData.loans,
-        hasAccountTypes: !!companyData.account_types?.length,
-        accountTypesData: companyData.account_types
+        hasWorkingCapital: !!this.extractWorkingCapitalData(companyData.services)
       });
 
-      // Normalize query for intent matching
-      const normalizedQuery = query.toLowerCase().trim();
+      // Extract intent
+      const intent = await this.extractIntent(query);
+      console.log('Extracted intent:', intent);
+
+      // Process based on query type
+      switch (intent.type) {
+        case 'loan':
+        console.log('Processing loan query');
+        return await this.processLoanQuery(companyData);
       
-      // Handle general greeting or company overview
-      if (normalizedQuery === 'hi' || normalizedQuery === 'hello' || normalizedQuery === 'hey') {
-        console.log('Generating company overview...');
-        const overview = this.generateCompanyOverview(companyData);
-        console.log('Generated overview:', overview);
-        return {
-          data: companyData,
-          context: overview
-        };
-      }
-
-      // Check for working capital related queries
-      if (normalizedQuery.includes('working capital') || 
-          normalizedQuery.includes('credit limit') || 
-          normalizedQuery.includes('credit utilization')) {
-        
+        case 'working_capital':
         console.log('Detected working capital query');
+        return await this.processWorkingCapitalQuery(companyData);
         
-        // Check if working_capital exists
-        if (!companyData.services?.working_capital) {
-          console.log('No working capital data found in services:', companyData.services);
-          return {
-            data: null,
-            context: `${companyData.name}, your working capital information is not currently available. Please contact your relationship manager.`
-          };
-        }
-
-        const workingCapital = companyData.services.working_capital;
-        console.log('Working capital data found:', workingCapital);
+        case 'payment_methods':
+          console.log('Detected payment methods query');
+          return await this.processPaymentMethodsQuery(companyData);
         
-        // Format the working capital data
-        const limit = Number(workingCapital.limit) || 0;
-        const utilized = Number(workingCapital.utilized) || 0;
-        const utilizationPercentage = limit > 0 ? ((utilized / limit) * 100).toFixed(1) : '0';
-        const lastReviewDate = workingCapital.last_review_date;
-
-        const formattedLimit = formatCurrency(limit);
-        const formattedUtilized = formatCurrency(utilized);
-        const formattedDate = formatDate(lastReviewDate);
-
-        console.log('Formatted working capital data:', {
-          limit: formattedLimit,
-          utilized: formattedUtilized,
-          percentage: utilizationPercentage,
-          lastReviewDate: formattedDate
-        });
-
-        const context = `Dear ${companyData.name}, based on our records as of ${formattedDate}, your working capital limit is ${formattedLimit}. ` +
-                       `You have utilized ${formattedUtilized} (${utilizationPercentage}% of your limit).`;
-
-        return {
-          data: {
-            company_info: {
-              name: companyData.name,
-              id: this.companyId
-            },
-            financial_services: {
-              working_capital: {
-                limit: limit,
-                utilized: utilized,
-                utilization_percentage: parseFloat(utilizationPercentage),
-                last_review_date: lastReviewDate
-              }
-            }
-          },
-          context
-        };
-      }
-
-      // Handle other types of queries...
-      console.log('Query type not recognized');
+        case 'treasury_services':
+          console.log('Detected treasury services query');
+          return await this.processTreasuryServicesQuery(companyData);
+        
+        default:
+      // Default response if query type not recognized
       return {
         data: null,
-        context: `${companyData.name}, I'm not sure how to process this query. Could you please ask about specific banking services like working capital, loans, or trade finance?`
+        context: `I'm not sure how to help with that query. You can ask me about:\n` +
+                `- Working capital information\n` +
+                `- Loan details\n` +
+                `- Account balances\n` +
+                    `- Payment methods\n` +
+                    `- Treasury services\n` +
+                `- Banking services`
       };
+      }
 
     } catch (error) {
       console.error('Error in NLPQueryService.processQuery:', error);
-      throw error;
+      return {
+        data: null,
+        context: 'I apologize, but I encountered an error while processing your query. Please try again.'
+      };
     }
   }
 
@@ -357,5 +559,88 @@ export class NLPQueryService {
     }
 
     return parts.join('\n\n');
+  }
+
+  private extractWorkingCapitalData(services: any): any {
+    if (!services) return null;
+    
+    // Check for working capital in npn_reports
+    if (services.npn_reports?.working_capital) {
+      return services.npn_reports.working_capital;
+    }
+    
+    // Direct check (fallback)
+    if (services.working_capital) {
+      return services.working_capital;
+    }
+    
+    return null;
+  }
+
+  private async processWorkingCapitalQuery(companyData: any): Promise<{ data: any; context: string }> {
+    console.log('Processing working capital query');
+    const services = companyData.services;
+    const workingCapital = this.extractWorkingCapitalData(services);
+
+    if (!workingCapital) {
+      return {
+        data: null,
+        context: `${companyData.name}, your working capital information is not currently available. Please contact your relationship manager.`
+      };
+    }
+
+    const utilized = Number(workingCapital.utilized);
+    const limit = Number(workingCapital.limit);
+    const utilizationPercentage = ((utilized / limit) * 100).toFixed(1);
+    const lastReviewDate = workingCapital.last_review_date 
+      ? new Date(workingCapital.last_review_date).toLocaleDateString()
+      : 'not available';
+
+    return {
+      data: workingCapital,
+      context: `${companyData.name}, your working capital facility has a limit of ${this.formatCurrency(limit)}, ` +
+        `with ${this.formatCurrency(utilized)} (${utilizationPercentage}%) utilized. ` +
+        `Last review date: ${lastReviewDate}.`
+    };
+  }
+
+  private formatCurrency(amount: number): string {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(amount);
+  }
+
+  private async processLoanQuery(companyData: any): Promise<{ data: any; context: string }> {
+    console.log('Processing loan query');
+    
+    // Check if loans exist in the correct path
+    let loans = companyData.services?.npn_reports?.loans;
+    if (!loans && companyData.loans) {
+      loans = companyData.loans;
+    }
+    
+    if (!loans || loans.length === 0) {
+      return {
+        data: null,
+        context: `${companyData.name}, you currently don't have any active loans with us. Please contact your relationship manager for information about loan products.`
+      };
+    }
+
+    // Calculate total loan amount
+    const totalAmount = loans.reduce((sum: number, loan: any) => sum + loan.amount, 0);
+    
+    const loanSummary = loans.map((loan: any) => 
+      `${loan.type}: ${this.formatCurrency(loan.amount)} at ${loan.interest_rate}% for ${loan.tenure_months} months`
+    );
+
+    // Enhanced response with more natural language
+    return {
+      data: loans,
+      context: `${companyData.name}, here are your loan details:\n\n` +
+              `You have a total loan amount of ${this.formatCurrency(totalAmount)} across ${loans.length} loans:\n\n` +
+              `Individual loans:\n• ${loanSummary.join('\n• ')}`
+    };
   }
 } 

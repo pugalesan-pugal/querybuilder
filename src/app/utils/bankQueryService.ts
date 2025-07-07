@@ -1,14 +1,13 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc, Timestamp, writeBatch, setDoc } from 'firebase/firestore';
 import { db } from './initFirebase';
 import { BankData, BankQueryIntent, CompanyData, Loan } from '../types/bankTypes';
 import { NLPQueryService } from './nlpQueryService';
-import { GeminiService } from './geminiService';
+import { OllamaService } from './ollamaService';
 
 export class BankQueryService {
   private userId: string;
   private companyId: string;
-  private geminiService: GeminiService;
+  private ollamaService: OllamaService;
   private nlpService: NLPQueryService;
   private db: any;
 
@@ -19,7 +18,7 @@ export class BankQueryService {
     console.log('Initializing BankQueryService with:', { companyId, userId });
     this.companyId = companyId;
     this.userId = userId;
-    this.geminiService = new GeminiService();
+    this.ollamaService = new OllamaService();
     this.nlpService = new NLPQueryService(companyId);
     this.db = db;
   }
@@ -33,6 +32,9 @@ export class BankQueryService {
         userId: this.userId
       });
 
+      // First, store the user's message
+      await this.storeUserMessage(chatId, queryText);
+
       // Process the query through NLP service
       console.log('Calling NLP service...');
       const { data, context } = await this.nlpService.processQuery(queryText);
@@ -42,21 +44,31 @@ export class BankQueryService {
         data: JSON.stringify(data, null, 2)
       });
 
-      // Generate response using Gemini
-      console.log('Calling Gemini service with context:', context);
-      const response = await this.geminiService.generateBankingResponse(context, queryText);
-      console.log('Gemini service responded with:', response);
+      let response: string;
+      
+      // If NLP service provided a meaningful response, use it directly
+      if (data !== null) {
+        response = context;
+      } else {
+        // Only use Ollama for queries that NLP service couldn't handle
+        console.log('Calling Ollama service with context:', context);
+        response = await this.ollamaService.generateBankingResponse(context, queryText);
+        console.log('Ollama service responded with:', response);
+      }
 
-      // Store the message in chat history
-      await this.storeMessage(chatId, queryText, response);
+      // Store the AI's response separately
+      await this.storeAIResponse(chatId, response);
 
       return response;
     } catch (error) {
       console.error('Error in BankQueryService.processQuery:', error);
-      if (error instanceof Error) {
-        return `I apologize, but I encountered an error while processing your query: ${error.message}`;
-      }
-      return "I apologize, but I encountered an unexpected error while processing your query. Please try again.";
+      const errorMessage = error instanceof Error ? 
+        `I apologize, but I encountered an error while processing your query: ${error.message}` :
+        "I apologize, but I encountered an unexpected error while processing your query. Please try again.";
+      
+      // Store the error response
+      await this.storeAIResponse(chatId, errorMessage);
+      return errorMessage;
     }
   }
 
@@ -117,7 +129,7 @@ export class BankQueryService {
     }
   }
 
-  private async storeMessage(chatId: string, query: string, response: string) {
+  private async storeUserMessage(chatId: string, query: string): Promise<void> {
     try {
       const batch = writeBatch(this.db);
 
@@ -131,6 +143,25 @@ export class BankQueryService {
         companyId: this.companyId,
         chatId: chatId
       });
+
+      // Update chat history
+      const chatRef = doc(this.db, 'chatHistory', chatId);
+      batch.update(chatRef, {
+        lastMessage: query,
+        lastMessageTimestamp: Timestamp.now(),
+        updatedAt: Timestamp.now()
+      });
+
+      await batch.commit();
+      console.log('User message stored successfully');
+    } catch (error) {
+      console.error('Error storing user message:', error);
+    }
+  }
+
+  private async storeAIResponse(chatId: string, response: string): Promise<void> {
+    try {
+      const batch = writeBatch(this.db);
 
       // Add assistant response
       const assistantMessageRef = doc(collection(this.db, 'messages'));
@@ -152,10 +183,9 @@ export class BankQueryService {
       });
 
       await batch.commit();
-      console.log('Messages stored successfully');
+      console.log('AI response stored successfully');
     } catch (error) {
-      console.error('Error storing messages:', error);
-      // Don't throw the error as this is not critical for the user experience
+      console.error('Error storing AI response:', error);
     }
   }
 } 

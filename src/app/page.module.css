@@ -1,9 +1,104 @@
+.variables {
+  --lava-blue: #004C99;
+  --carbon-steel-grey-matte: #2C3539;
+  --rising-blue-metallic: #0066CC;
+  --carbon-steel-grey: #42474B;
+  --deep-black-pearl: #1A1C20;
+  --reflex-silver: #C0C0C0;
+  --candy-white: #F8F8F8;
+  --wild-cherry-red: #D2042D;
+  --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(0, 76, 153, 0.4);
+  }
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(0, 76, 153, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(0, 76, 153, 0);
+  }
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 .container {
+  composes: variables;
   min-height: 100vh;
-  background: linear-gradient(135deg, #1E0B36 0%, #320D55 100%);
+  background: linear-gradient(135deg, var(--deep-black-pearl) 0%, var(--lava-blue) 100%);
+  background-size: 200% 200%;
   position: relative;
   overflow: hidden;
-  color: white;
+  color: var(--candy-white);
+  animation: gradientShift 15s ease infinite;
+}
+
+/* Add animated background patterns */
+.container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(0, 76, 153, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(0, 102, 204, 0.1) 0%, transparent 50%);
+  animation: patternShift 20s ease-in-out infinite;
+}
+
+@keyframes patternShift {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
 }
 
 .main {
@@ -25,83 +120,159 @@
 }
 
 .logo {
+  composes: variables;
   font-size: 1.5rem;
   font-weight: 600;
-  color: white;
+  color: var(--candy-white);
+  animation: slideInFromLeft 0.8s var(--transition-smooth);
+  transition: transform var(--transition-smooth);
+}
+
+.logo:hover {
+  transform: scale(1.05);
 }
 
 .navLinks {
+  composes: variables;
   display: flex;
   gap: 2.5rem;
   align-items: center;
+  animation: fadeIn 0.8s var(--transition-smooth);
 }
 
 .navLinks a {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(248, 248, 248, 0.7);
   text-decoration: none;
   font-size: 0.9rem;
   font-weight: 500;
-  transition: color 0.3s ease;
+  transition: all var(--transition-smooth);
   letter-spacing: 0.5px;
+  position: relative;
 }
 
-.navLinks a:hover,
-.navLinks .active {
-  color: white;
+.navLinks a::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: -4px;
+  left: 0;
+  background-color: var(--rising-blue-metallic);
+  transition: width var(--transition-smooth);
+}
+
+.navLinks a:hover::after {
+  width: 100%;
 }
 
 .signIn {
+  composes: variables;
   padding: 0.5rem 1.5rem;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(192, 192, 192, 0.1);
   border-radius: 4px;
   backdrop-filter: blur(10px);
+  transition: all var(--transition-bounce);
 }
 
 .signIn:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--rising-blue-metallic);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 102, 204, 0.3);
 }
 
 /* Hero Section */
 .heroSection {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 4rem;
-  padding: 4rem 0;
+  gap: 2rem;
+  padding: 2rem 0;
   align-items: center;
   position: relative;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .heroContent {
-  max-width: 600px;
+  padding-left: 4rem;
+  position: relative;
+}
+
+/* Add decorative line */
+.heroContent::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 2px;
+  height: 70%;
+  background: linear-gradient(to bottom, transparent, var(--rising-blue-metallic), transparent);
+  transform: translateY(-50%);
 }
 
 .title {
-  font-size: 6rem;
-  font-weight: 700;
-  line-height: 1;
+  font-size: clamp(3rem, 8vw, 6rem);
+  line-height: 0.9;
   margin-bottom: 1rem;
-  color: white;
+  position: relative;
+  z-index: 1;
+}
+
+/* Add floating dots background */
+.floatingDots {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dot {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--rising-blue-metallic);
+  opacity: 0.2;
+  animation: floatDot 4s infinite ease-in-out;
+}
+
+@keyframes floatDot {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(10px, -10px); }
 }
 
 .subtitle {
+  composes: variables;
   display: block;
-  color: #00E5FF;
+  color: var(--rising-blue-metallic);
   font-size: 4rem;
   margin-top: 0.5rem;
+  animation: slideInFromRight 1s var(--transition-smooth);
+  opacity: 0;
+  animation-fill-mode: forwards;
+  animation-delay: 0.4s;
 }
 
 .description {
-  color: rgba(255, 255, 255, 0.7);
+  composes: variables;
+  color: rgba(248, 248, 248, 0.7);
   font-size: 1.1rem;
   line-height: 1.6;
   margin: 2rem 0;
   max-width: 500px;
+  animation: fadeIn 1s var(--transition-smooth);
+  opacity: 0;
+  animation-fill-mode: forwards;
+  animation-delay: 0.6s;
 }
 
 .demoButton {
-  background: none;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
+  composes: variables;
+  background: var(--carbon-steel-grey-matte);
+  border: 1px solid rgba(248, 248, 248, 0.2);
+  color: var(--candy-white);
   padding: 1rem 2rem;
   border-radius: 4px;
   font-size: 1rem;
@@ -109,13 +280,40 @@
   display: flex;
   align-items: center;
   gap: 0.8rem;
-  transition: all 0.3s ease;
+  transition: all var(--transition-bounce);
+  animation: fadeIn 1s var(--transition-smooth);
+  opacity: 0;
+  animation-fill-mode: forwards;
+  animation-delay: 0.8s;
+  position: relative;
+  overflow: hidden;
+}
+
+.demoButton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: all 0.6s;
+}
+
+.demoButton:hover::before {
+  left: 100%;
 }
 
 .demoButton:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: var(--carbon-steel-grey);
+  border-color: rgba(248, 248, 248, 0.3);
   transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(44, 53, 57, 0.3);
 }
 
 .arrow {
@@ -130,21 +328,36 @@
 /* Hero Image */
 .heroImage {
   position: relative;
-  width: 500px;
-  height: 700px;
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
+  min-height: 600px;
+}
+
+/* Add circular glow effect */
+.heroImage::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, rgba(0, 102, 204, 0.1) 0%, transparent 70%);
+  animation: pulseGlow 4s infinite ease-in-out;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 0.3; }
 }
 
 .phone {
+  composes: variables;
   width: 380px;
   height: 750px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(192, 192, 192, 0.03);
   border-radius: 45px;
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(248, 248, 248, 0.1);
   backdrop-filter: blur(10px);
 }
 
@@ -160,66 +373,136 @@
 }
 
 .chatInterface {
+  composes: variables;
   width: 100%;
-  max-width: 450px;
+  max-width: 600px;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.5rem;
   padding: 2rem;
-  background: rgba(255, 255, 255, 0.03);
+  background: linear-gradient(180deg, rgba(0, 32, 76, 0.9) 0%, rgba(0, 45, 98, 0.95) 100%);
   border-radius: 24px;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 8px 32px rgba(0, 18, 46, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
+  position: relative;
+  z-index: 1;
+}
+
+/* Add subtle pattern overlay */
+.chatInterface::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    linear-gradient(45deg, transparent 45%, rgba(255, 255, 255, 0.05) 50%, transparent 55%),
+    linear-gradient(-45deg, transparent 45%, rgba(255, 255, 255, 0.05) 50%, transparent 55%);
+  background-size: 20px 20px;
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0.3;
 }
 
 .messageBot,
 .messageUser {
   display: flex;
   gap: 1rem;
-  align-items: center;
-  opacity: 1;
+  align-items: flex-start;
+  opacity: 0;
   width: 100%;
+  animation: fadeIn 0.5s var(--transition-smooth) forwards;
+  position: relative;
 }
 
-.messageBot {
-  padding-right: 25%;
+/* Add message connection lines */
+.messageBot::before,
+.messageUser::before {
+  content: '';
+  position: absolute;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1), transparent);
+  top: 40px;
 }
 
-.messageUser {
-  padding-left: 25%;
-  flex-direction: row-reverse;
+.messageBot::before {
+  left: 20px;
 }
 
-.botIcon,
-.userIcon {
-  width: 48px;
-  height: 48px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  flex-shrink: 0;
+.messageUser::before {
+  right: 20px;
 }
 
 .messageContent {
-  background: rgba(255, 255, 255, 0.03);
-  height: 48px;
-  border-radius: 12px;
+  composes: variables;
+  background: rgba(31, 41, 55, 0.4);
+  min-height: 48px;
+  padding: 1rem 1.5rem;
+  border-radius: 16px;
   width: 100%;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all var(--transition-smooth);
+  display: flex;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Add shimmer effect */
+.messageContent::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    to bottom right,
+    transparent,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent,
+    transparent
+  );
+  transform: rotate(45deg);
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%) rotate(45deg); }
+  100% { transform: translateX(100%) rotate(45deg); }
 }
 
 .messageBot .messageContent {
-  border-top-left-radius: 8px;
+  border-top-left-radius: 4px;
+  background: rgba(31, 41, 55, 0.4);
 }
 
 .messageUser .messageContent {
-  border-top-right-radius: 8px;
+  border-top-right-radius: 4px;
+  background: rgba(0, 76, 153, 0.4);
 }
+
+.messageContent:hover {
+  background: rgba(31, 41, 55, 0.6);
+  transform: translateY(-2px);
+}
+
+.messageUser .messageContent:hover {
+  background: rgba(0, 76, 153, 0.6);
+}
+
+.messageBot:nth-child(1) { animation-delay: 1.2s; }
+.messageUser:nth-child(2) { animation-delay: 1.4s; }
+.messageBot:nth-child(3) { animation-delay: 1.6s; }
+.messageUser:nth-child(4) { animation-delay: 1.8s; }
+.messageBot:nth-child(5) { animation-delay: 2.0s; }
 
 /* Hexagon Grid */
 .hexagonGrid {
@@ -233,13 +516,20 @@
 }
 
 .hexagon {
+  composes: variables;
   position: absolute;
   width: 80px;
   height: 80px;
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.1), rgba(179, 0, 255, 0.1));
+  background: linear-gradient(135deg, var(--rising-blue-metallic) 0%, var(--lava-blue) 100%);
   clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
   opacity: 0.1;
   animation: float 10s infinite ease-in-out;
+  transition: all var(--transition-smooth);
+}
+
+.hexagon:hover {
+  opacity: 0.2;
+  transform: scale(1.1);
 }
 
 .hexagon:nth-child(1) { top: 10%; right: 15%; animation-delay: 0s; }

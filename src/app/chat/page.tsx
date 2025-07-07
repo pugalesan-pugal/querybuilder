@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../utils/auth';
+import { useCustomAuth } from '../utils/customAuth';
 import { BankQueryService } from '../utils/bankQueryService';
 import LoadingScreen from '../components/LoadingScreen';
 import styles from './page.module.css';
@@ -33,7 +33,7 @@ interface ChatHistory {
 
 export default function ChatPage() {
   const router = useRouter();
-  const { user, loading, error: authError } = useAuth();
+  const { user, loading, error: authError } = useCustomAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -45,6 +45,7 @@ export default function ChatPage() {
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [newChatTitle, setNewChatTitle] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(null);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -188,19 +189,22 @@ export default function ChatPage() {
       return;
     }
 
+    const userMessage = inputMessage.trim();
     setInputMessage('');
     setIsProcessing(true);
     setError(null);
+    setPendingUserMessage(userMessage);
 
     try {
-      console.log('Processing query:', inputMessage.trim());
-      await bankQueryService.processQuery(inputMessage.trim(), currentChatId);
+      console.log('Processing query:', userMessage);
+      await bankQueryService.processQuery(userMessage, currentChatId);
       console.log('Query processed successfully');
     } catch (err) {
       console.error('Error processing query:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred while processing your query');
+      setError('Failed to process your query. Please try again.');
     } finally {
       setIsProcessing(false);
+      setPendingUserMessage(null);
     }
   };
 
@@ -260,169 +264,111 @@ export default function ChatPage() {
     <div className={styles.container}>
       <div className={styles.sidebar}>
         <div className={styles.userInfo}>
-          <div className={styles.userName}>{bankCustomer.name}</div>
-          <div className={styles.userEmail}>{bankCustomer.email}</div>
-          <div className={styles.companyId}>Company ID: {bankCustomer.companyId}</div>
+          {user && (
+            <>
+              <div className={styles.userName}>{(user as BankCustomer).name}</div>
+              <div className={styles.userEmail}>{user.email}</div>
+              <div className={styles.companyId}>{(user as BankCustomer).companyId}</div>
+            </>
+          )}
         </div>
+        
         <button 
-          onClick={createNewChat} 
           className={styles.newChatButton}
-          disabled={isIndexBuilding}
+          onClick={createNewChat}
+          disabled={isProcessing || isIndexBuilding}
         >
           New Chat
         </button>
+
         <div className={styles.chatHistory}>
-          {isIndexBuilding ? (
-            <div className={styles.indexBuilding}>
-              <div className={styles.spinner}></div>
-              <p>Preparing chat history...</p>
-              <p>This may take a few moments</p>
-            </div>
-          ) : chatHistory.map(chat => (
+          {chatHistory.map((chat) => (
             <div
               key={chat.id}
               className={`${styles.chatHistoryItem} ${currentChatId === chat.id ? styles.active : ''}`}
+              onClick={() => setCurrentChatId(chat.id)}
             >
-              <div 
-                className={styles.chatContent}
-                onClick={() => setCurrentChatId(chat.id)}
-              >
-                {editingChatId === chat.id ? (
-                  <div className={styles.chatEditForm}>
+              <div className={styles.chatContent}>
+                <div className={styles.chatTitle}>
+                  {editingChatId === chat.id ? (
                     <input
                       type="text"
                       value={newChatTitle}
                       onChange={(e) => setNewChatTitle(e.target.value)}
-                      placeholder="Enter chat title"
                       className={styles.chatEditInput}
-                      onClick={(e) => e.stopPropagation()}
+                      autoFocus
                     />
-                    <div className={styles.chatEditActions}>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRenameChat(chat.id);
-                        }}
-                        className={styles.chatEditConfirm}
-                        type="button"
-                      >
-                        <FiCheck />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingChatId(null);
-                          setNewChatTitle('');
-                        }}
-                        className={styles.chatEditCancel}
-                        type="button"
-                      >
-                        <FiX />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className={styles.chatTitle}>
-                      {chat.title || 'New Chat'}
-                    </div>
-                    <div className={styles.chatLastMessage}>
-                      {chat.lastMessage || 'No messages yet'}
-                    </div>
-                    <div className={styles.chatTimestamp}>
-                      {chat.lastMessageTimestamp 
-                        ? new Date(chat.lastMessageTimestamp.seconds * 1000).toLocaleString()
-                        : new Date(chat.createdAt.seconds * 1000).toLocaleString()
-                      }
-                    </div>
-                  </>
-                )}
-              </div>
-              <div className={styles.chatActions}>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditingChatId(chat.id);
-                    setNewChatTitle(chat.title || 'New Chat');
-                  }}
-                  className={styles.chatActionButton}
-                  title="Rename chat"
-                  type="button"
-                >
-                  <FiEdit2 />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteChat(chat.id);
-                  }}
-                  className={`${styles.chatActionButton} ${styles.deleteButton}`}
-                  title="Delete chat"
-                  disabled={isDeleting}
-                  type="button"
-                >
-                  <FiTrash2 />
-                </button>
+                  ) : (
+                    chat.title || 'New Chat'
+                  )}
+                </div>
+                <div className={styles.chatLastMessage}>{chat.lastMessage || 'No messages yet'}</div>
+                <div className={styles.chatTimestamp}>
+                  {chat.lastMessageTimestamp?.toDate().toLocaleString() || 'Just now'}
+                </div>
               </div>
             </div>
           ))}
         </div>
       </div>
-      <div className={styles.chatArea}>
-        {currentChatId ? (
-          <>
-            <div className={styles.messages}>
-              {messages.map(message => (
-                <div
-                  key={message.id}
-                  className={`${styles.message} ${message.isUser ? styles.userMessage : styles.botMessage}`}
-                >
-                  <div className={styles.messageContent}>{message.content}</div>
-                  <div className={styles.timestamp}>
-                    {new Date(message.timestamp.seconds * 1000).toLocaleString()}
-                  </div>
-                </div>
-              ))}
-              {isProcessing && (
-                <div className={styles.processing}>
-                  Processing your query...
-                </div>
-              )}
-              {error && (
-                <div className={styles.error}>
-                  {error}
-                </div>
-              )}
+
+      <div className={styles.chatContainer}>
+        <div className={styles.messages}>
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={`${styles.message} ${
+                message.isUser ? styles.userMessage : styles.aiMessage
+              }`}
+            >
+              <div className={styles.messageContent}>{message.content}</div>
             </div>
-            <form onSubmit={handleSubmit} className={styles.inputArea}>
-              <input
-                type="text"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                placeholder="Type your query here..."
-                disabled={isProcessing || isIndexBuilding}
-                className={styles.input}
-              />
-              <button
-                type="submit"
-                disabled={isProcessing || !inputMessage.trim() || isIndexBuilding}
-                className={styles.button}
-              >
-                Send
-              </button>
-            </form>
-          </>
-        ) : (
-          <div className={styles.welcome}>
-            <h1>Welcome to AI Query Builder</h1>
-            <p>Select a chat from the sidebar or create a new one to get started.</p>
-            {isIndexBuilding && (
-              <p className={styles.indexBuildingNote}>
-                Note: Chat history is being prepared. This may take a few moments...
-              </p>
-            )}
-          </div>
-        )}
+          ))}
+          {pendingUserMessage && (
+            <div className={`${styles.message} ${styles.userMessage}`}>
+              <div className={styles.messageContent}>{pendingUserMessage}</div>
+            </div>
+          )}
+          {isProcessing && (
+            <div className={`${styles.message} ${styles.aiMessage}`}>
+              <div className={styles.messageContent}>
+                <div className={styles.typingIndicator}>
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {error && <div className={styles.error}>{error}</div>}
+
+        <div className={styles.inputArea}>
+          <form onSubmit={handleSubmit} className={styles.inputForm}>
+            <textarea
+              className={styles.input}
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              placeholder="Type your message..."
+              disabled={isProcessing || isIndexBuilding}
+              rows={1}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }
+              }}
+            />
+            <button
+              type="submit"
+              className={styles.sendButton}
+              disabled={isProcessing || !inputMessage.trim() || isIndexBuilding}
+            >
+              Send
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

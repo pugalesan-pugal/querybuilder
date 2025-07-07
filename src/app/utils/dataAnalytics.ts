@@ -7,6 +7,8 @@ import nlp from 'compromise';
 import { QueryTemplateManager } from './queryTemplates';
 import { DataMasking } from './dataMasking';
 import { SQLGenerator } from './sqlGenerator';
+import { OllamaService } from './ollamaService';
+import { db } from './initFirebase';
 
 // Add custom lexicon for our domain
 nlp.extend({
@@ -176,19 +178,16 @@ export class DataAnalytics {
   private templateManager: QueryTemplateManager;
   private dataMasking: DataMasking;
   private sqlGenerator: SQLGenerator;
-  private genAI: GoogleGenerativeAI;
-  private model: any;
+  private ollamaService: OllamaService;
   private conversationContext: ConversationContext;
   private currentUser: User | null = null;
 
   constructor() {
-    const { db } = initFirebase();
     this.db = db;
     this.templateManager = new QueryTemplateManager();
     this.dataMasking = new DataMasking();
     this.sqlGenerator = new SQLGenerator();
-    this.genAI = new GoogleGenerativeAI('AIzaSyAn3gpVHkV1Hix5UocuihdMlQNpWuKiThM');
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-pro" });
+    this.ollamaService = new OllamaService();
     this.conversationContext = {
       followUpCount: 0,
       messages: []
@@ -1166,7 +1165,7 @@ export class DataAnalytics {
           };
         
         default:
-          // Use Gemini for general conversation
+          // Use Ollama for general conversation
           const prompt = `
             As an HR assistant, respond to this query: "${query}"
             Context: This is a workplace HR system.
@@ -1174,12 +1173,10 @@ export class DataAnalytics {
             If you're not sure, ask for clarification.
           `;
           
-          const result = await this.model.generateContent(prompt);
-          const response = await result.response;
-          const text = response.text();
+          const response = await this.ollamaService.callOllamaAPI(prompt);
           
           return {
-            text
+            text: response
           };
       }
     } catch (err) {

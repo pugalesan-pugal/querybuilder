@@ -1,10 +1,32 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import styles from './page.module.css';
+import Image from 'next/image';
 
 export default function Home() {
+  useEffect(() => {
+    // Create floating dots
+    const heroContent = document.querySelector(`.${styles.heroContent}`);
+    if (heroContent) {
+      const dotsContainer = document.createElement('div');
+      dotsContainer.className = styles.floatingDots;
+      
+      // Create 20 dots with random positions
+      for (let i = 0; i < 20; i++) {
+        const dot = document.createElement('div');
+        dot.className = styles.dot;
+        dot.style.left = `${Math.random() * 100}%`;
+        dot.style.top = `${Math.random() * 100}%`;
+        dot.style.animationDelay = `${Math.random() * 4}s`;
+        dotsContainer.appendChild(dot);
+      }
+      
+      heroContent.appendChild(dotsContainer);
+    }
+  }, []);
+
   return (
     <div className={styles.container}>
       <nav className={styles.nav}>
