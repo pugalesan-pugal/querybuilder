@@ -26,6 +26,13 @@ const nextConfig = {
   // Ensure CSS modules work correctly
   images: {
     domains: ['localhost']
+  },
+  // Optimize CSS handling
+  optimizeFonts: true,
+  experimental: {
+    optimizeCss: true,
+    // Prevent CSS hot reload issues
+    webpackBuildWorker: false
   }
 };
 

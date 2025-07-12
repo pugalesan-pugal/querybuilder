@@ -1,4 +1,4 @@
-import { doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc, Timestamp, writeBatch, setDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc, Timestamp, writeBatch, setDoc, orderBy } from 'firebase/firestore';
 import { db } from './initFirebase';
 import { BankData, BankQueryIntent, CompanyData, Loan } from '../types/bankTypes';
 import { NLPQueryService } from './nlpQueryService';
@@ -21,6 +21,22 @@ export class BankQueryService {
     this.ollamaService = new OllamaService();
     this.nlpService = new NLPQueryService(companyId);
     this.db = db;
+  }
+
+  private generateChatTitle(message: string): string {
+    // Truncate and clean the message to create a title
+    const maxLength = 50;
+    let title = message.trim();
+    
+    // Remove any special characters and extra whitespace
+    title = title.replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ');
+    
+    // Truncate if too long and add ellipsis
+    if (title.length > maxLength) {
+      title = title.substring(0, maxLength - 3) + '...';
+    }
+    
+    return title;
   }
 
   async processQuery(queryText: string, chatId: string): Promise<string> {
@@ -56,8 +72,26 @@ export class BankQueryService {
         console.log('Ollama service responded with:', response);
       }
 
-      // Store the AI's response separately
+      // Store the AI's response
       await this.storeAIResponse(chatId, response);
+
+      // After storing both messages, generate a new title
+      const messagesRef = collection(this.db, 'messages');
+      const q = query(messagesRef, where('chatId', '==', chatId), orderBy('timestamp', 'asc'));
+      const messagesDocs = await getDocs(q);
+      
+      // Convert messages to format needed for title generation
+      const messages = messagesDocs.docs.map(doc => {
+        const data = doc.data();
+        return {
+          content: data.content,
+          isUser: data.isUser
+        };
+      });
+
+      // Generate and update the title
+      const newTitle = await this.ollamaService.generateChatTitle(messages);
+      await this.renameChat(chatId, newTitle);
 
       return response;
     } catch (error) {
@@ -76,7 +110,7 @@ export class BankQueryService {
     try {
       const chatRef = doc(collection(this.db, 'chatHistory'));
       await setDoc(chatRef, {
-        title: 'New Chat',
+        title: 'New Chat',  // Will be updated after the first message exchange
         lastMessage: '',
         lastMessageTimestamp: null,
         createdAt: Timestamp.now(),
@@ -159,7 +193,7 @@ export class BankQueryService {
     }
   }
 
-  private async storeAIResponse(chatId: string, response: string): Promise<void> {
+  async storeAIResponse(chatId: string, response: string): Promise<void> {
     try {
       const batch = writeBatch(this.db);
 

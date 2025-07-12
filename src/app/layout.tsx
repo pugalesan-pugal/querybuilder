@@ -1,15 +1,20 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import "./globals.css";
 import styles from "./layout.module.css";
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
   title: "QueryBuilder",
   description: "AI-Powered Query Builder",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
@@ -18,15 +23,11 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <head>
-        <link 
-          rel="stylesheet" 
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
-        />
-      </head>
-      <body className={`${inter.className} ${styles.body}`}>
-        {children}
+    <html lang="en" className={`${inter.variable}`}>
+      <body className={styles.body}>
+        <main className={styles.main}>
+          {children}
+        </main>
       </body>
     </html>
   );

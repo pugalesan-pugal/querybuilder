@@ -219,4 +219,45 @@ export class OllamaService {
       return "I apologize, but I encountered an error while processing your query. Please try again.";
     }
   }
+
+  async generateChatTitle(messages: { content: string, isUser: boolean }[]): Promise<string> {
+    try {
+      // Format messages for context
+      const messageContext = messages
+        .map(m => `${m.isUser ? "User" : "Assistant"}: ${m.content}`)
+        .join("\n");
+
+      const prompt = `
+        Based on the following conversation, generate a brief, descriptive title (maximum 5 words) that captures the main topic or intent.
+        Only respond with the title itself, no additional text or punctuation.
+
+        Conversation:
+        ${messageContext}
+
+        Examples of good titles:
+        - Loan Balance Inquiry
+        - Working Capital Analysis
+        - Account Statement Request
+        - Payment Schedule Information
+        - Transaction History Review
+      `;
+
+      const response = await this.enqueueRequest(() => this.callOllamaAPI(prompt));
+      
+      // Clean and format the response
+      let title = response.trim()
+        .replace(/^["']|["']$/g, '') // Remove quotes if present
+        .replace(/\.$/, ''); // Remove trailing period if present
+      
+      // Ensure title isn't too long
+      if (title.length > 40) {
+        title = title.substring(0, 37) + '...';
+      }
+
+      return title || 'New Chat'; // Fallback if empty response
+    } catch (error) {
+      console.error('Error generating chat title:', error);
+      return 'New Chat';
+    }
+  }
 } 
