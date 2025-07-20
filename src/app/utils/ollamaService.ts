@@ -215,9 +215,72 @@ Please provide a helpful response. If you need specific information, ask the use
 
   async generateChatTitle(messages: { content: string, isUser: boolean }[]): Promise<string> {
     try {
-      // Use the last message as the title
-      const lastMessage = messages[messages.length - 1];
-      return lastMessage ? lastMessage.content.substring(0, 50) + '...' : 'New Chat';
+      // Get the first user message as it usually contains the main topic
+      const firstUserMessage = messages.find(m => m.isUser);
+      if (!firstUserMessage) {
+        return 'New Chat';
+      }
+
+      // Extract key topics from the message
+      const topics = {
+        transactions: ['transaction', 'spent', 'payment', 'expense', 'recent'],
+        kyc: ['kyc', 'know your customer', 'verification', 'documents'],
+        personal: ['name', 'address', 'contact', 'email', 'phone'],
+        account: ['account', 'balance', 'bank'],
+        loans: ['loan', 'credit', 'borrowing'],
+        workingCapital: ['working capital', 'wc', 'limit', 'facility']
+      };
+
+      const lowerMessage = firstUserMessage.content.toLowerCase();
+      
+      // Find the matching topic
+      for (const [topic, keywords] of Object.entries(topics)) {
+        if (keywords.some(keyword => lowerMessage.includes(keyword))) {
+          // Create a title based on the topic
+          switch (topic) {
+            case 'transactions':
+              if (lowerMessage.includes('recent')) {
+                return 'Recent Transactions Query';
+              }
+              if (lowerMessage.includes('last month')) {
+                return 'Last Month\'s Transactions';
+              }
+              if (lowerMessage.includes('this month')) {
+                return 'Current Month Transactions';
+              }
+              return 'Transaction History Query';
+            
+            case 'kyc':
+              return 'KYC Status Information';
+            
+            case 'personal':
+              if (lowerMessage.includes('name')) {
+                return 'Name Information Query';
+              }
+              if (lowerMessage.includes('address')) {
+                return 'Address Information Query';
+              }
+              return 'Personal Information Query';
+            
+            case 'account':
+              return 'Account Information Query';
+            
+            case 'loans':
+              return 'Loan Information Query';
+            
+            case 'workingCapital':
+              return 'Working Capital Information';
+          }
+        }
+      }
+
+      // If no specific topic found, use a substring of the message
+      const title = firstUserMessage.content
+        .split(/[.!?]/)[0] // Get first sentence
+        .trim()
+        .substring(0, 30); // Limit length
+
+      return title + (title.length >= 30 ? '...' : '');
     } catch (error) {
       console.error('Error generating chat title:', error);
       return 'New Chat';

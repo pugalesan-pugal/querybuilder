@@ -224,43 +224,18 @@ export class BankQueryService {
     return JSON.stringify(data);
   }
 
-  private async updateChatTitle(chatId: string): Promise<void> {
-    try {
-      // Get all messages for this chat
-      const messagesRef = collection(db, 'messages');
-      const q = query(messagesRef, 
-        where('chatId', '==', chatId),
-        orderBy('timestamp', 'asc')
-      );
-      const messagesDocs = await getDocs(q);
-      
-      // Convert messages to format needed for title generation
-      const messages = messagesDocs.docs.map(doc => {
-        const data = doc.data();
-        return {
-          content: data.content,
-          isUser: data.isUser
-        };
-      });
-
-      // Generate and update the title
-      const newTitle = await this.ollamaService.generateChatTitle(messages);
-      await this.renameChat(chatId, newTitle);
-    } catch (error) {
-      console.error('Error updating chat title:', error);
-    }
-  }
-
   async createNewChat(): Promise<string> {
     try {
       const chatRef = doc(collection(db, 'chatHistory'));
       await setDoc(chatRef, {
         title: 'New Chat',
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now(),
-        userId: this.userId,
-        companyId: this.companyId
-      });
+      lastMessage: '',
+      lastMessageTimestamp: null,
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+      userId: this.userId,
+      companyId: this.companyId
+    });
       return chatRef.id;
     } catch (error) {
       console.error('Error creating new chat:', error);
@@ -304,63 +279,89 @@ export class BankQueryService {
     }
   }
 
-  private async storeUserMessage(chatId: string, content: string): Promise<void> {
+  async storeUserMessage(chatId: string, content: string): Promise<void> {
     try {
-      const batch = writeBatch(db);
-
-      // Add user message
-      const userMessageRef = doc(collection(db, 'messages'));
-      batch.set(userMessageRef, {
+      // Store message
+      const messageRef = doc(collection(db, 'messages'));
+      await setDoc(messageRef, {
+        chatId,
         content,
-        timestamp: Timestamp.now(),
         isUser: true,
+        timestamp: Timestamp.now(),
         userId: this.userId,
-        companyId: this.companyId,
-        chatId
+        companyId: this.companyId
       });
 
       // Update chat history
       const chatRef = doc(db, 'chatHistory', chatId);
-      batch.update(chatRef, {
+      await updateDoc(chatRef, {
         lastMessage: content,
         lastMessageTimestamp: Timestamp.now(),
         updatedAt: Timestamp.now()
       });
 
-      await batch.commit();
-      console.log('User message stored successfully');
+      // Update chat title if this is the first message
+      const chatDoc = await getDoc(chatRef);
+      const chatData = chatDoc.data();
+      if (chatData && chatData.title === 'New Chat') {
+        const title = await this.ollamaService.generateChatTitle([{ content, isUser: true }]);
+        await updateDoc(chatRef, { title });
+      }
     } catch (error) {
       console.error('Error storing user message:', error);
+      throw error;
     }
   }
 
   async storeAIResponse(chatId: string, content: string): Promise<void> {
     try {
-      const batch = writeBatch(db);
-
-      // Add assistant response
-      const assistantMessageRef = doc(collection(db, 'messages'));
-      batch.set(assistantMessageRef, {
+      // Store message
+      const messageRef = doc(collection(db, 'messages'));
+      await setDoc(messageRef, {
+        chatId,
         content,
-        timestamp: Timestamp.now(),
         isUser: false,
-        userId: 'system',
-        companyId: this.companyId,
-        chatId
+        timestamp: Timestamp.now(),
+        userId: this.userId,
+        companyId: this.companyId
       });
 
       // Update chat history
       const chatRef = doc(db, 'chatHistory', chatId);
-      batch.update(chatRef, {
+      await updateDoc(chatRef, {
         lastMessage: content,
         lastMessageTimestamp: Timestamp.now(),
         updatedAt: Timestamp.now()
       });
-
-      await batch.commit();
-      console.log('AI response stored successfully');
     } catch (error) {
       console.error('Error storing AI response:', error);
+      throw error;
+    }
+  }
+
+  async updateChatTitle(chatId: string): Promise<void> {
+    try {
+      // Get all messages for this chat
+      const messagesQuery = query(
+        collection(db, 'messages'),
+        where('chatId', '==', chatId),
+        orderBy('timestamp', 'asc')
+      );
+      const messagesSnapshot = await getDocs(messagesQuery);
+      const messages = messagesSnapshot.docs.map(doc => ({
+        content: doc.data().content,
+        isUser: doc.data().isUser
+      }));
+
+      // Generate new title
+      const title = await this.ollamaService.generateChatTitle(messages);
+
+      // Update chat title
+      const chatRef = doc(db, 'chatHistory', chatId);
+      await updateDoc(chatRef, { title });
+    } catch (error) {
+      console.error('Error updating chat title:', error);
+      throw error;
     }
   }
 
