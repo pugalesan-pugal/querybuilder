@@ -1,14 +1,12 @@
 import { collection, query as firestoreQuery, where, getDocs, Timestamp, orderBy, limit } from 'firebase/firestore';
-import { initFirebase } from './initFirebase';
+import { db } from './initFirebase';
 import * as XLSX from 'xlsx';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { format, subMonths, startOfWeek, endOfWeek, parseISO, isWithinInterval, addDays } from 'date-fns';
 import nlp from 'compromise';
 import { QueryTemplateManager } from './queryTemplates';
 import { DataMasking } from './dataMasking';
 import { SQLGenerator } from './sqlGenerator';
 import { OllamaService } from './ollamaService';
-import { db } from './initFirebase';
 
 // Add custom lexicon for our domain
 nlp.extend({
@@ -81,9 +79,6 @@ nlp.extend({
     previous: 'TimeFrame'
   }
 });
-
-const genAI = new GoogleGenerativeAI('AIzaSyAn3gpVHkV1Hix5UocuihdMlQNpWuKiThM');
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
 interface QueryIntent {
   primaryIntent: 'employee_search' | 'department_info' | 'attendance' | 'work_hours' | 'joining_info' | 'performance' | 'unknown' | 'personal_info';

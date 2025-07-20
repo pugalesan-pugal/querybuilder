@@ -213,23 +213,86 @@ export default function ChatPage() {
     }
   };
 
+  const formatMessage = (content: string) => {
+    // Format sensitive data patterns
+    return content
+      // Format masked numbers (e.g., ****1234)
+      .replace(/(\*{4}\d{4})/g, '<span class="sensitiveData">$1</span>')
+      // Format currency amounts
+      .replace(/(₹[\d,]+(\.\d{2})?)/g, '<span class="currency">$1</span>')
+      // Format dates
+      .replace(/(\d{2}\/\d{2}\/\d{4}|\d{4}-\d{2}-\d{2})/g, '<span class="date">$1</span>')
+      // Format status values
+      .replace(/(Status: )(Active|Completed|Pending|Failed)/gi, 
+        '$1<span class="status $2">$2</span>')
+      // Format KYC status
+      .replace(/(KYC Status: )(Completed|Pending|Verified)/gi,
+        '$1<span class="status $2">$2</span>');
+  };
+
+  const renderMessages = () => {
+    return (
+      <div className={styles.messagesWrapper}>
+        {messages.map((message) => (
+          <div key={message.id} className={styles.messageContainer}>
+            <div className={`${styles.messageHeader} ${message.isUser ? styles.userMessageHeader : styles.aiMessageHeader}`}>
+              {message.isUser ? 'You' : 'AI Assistant'}
+            </div>
+            <div className={`${styles.message} ${message.isUser ? styles.userMessage : styles.aiMessage}`}>
+              {message.isUser ? (
+                message.content
+              ) : (
+                <div
+                  className="whitespace-pre-wrap"
+                  dangerouslySetInnerHTML={{
+                    __html: formatMessage(message.content)
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        ))}
+        {pendingUserMessage && (
+          <div className={styles.messageContainer}>
+            <div className={`${styles.messageHeader} ${styles.userMessageHeader}`}>
+              You
+            </div>
+            <div className={`${styles.message} ${styles.userMessage}`}>
+              {pendingUserMessage}
+            </div>
+          </div>
+        )}
+        {isProcessing && (
+          <div className={styles.messageContainer}>
+            <div className={`${styles.messageHeader} ${styles.aiMessageHeader}`}>
+              AI Assistant
+            </div>
+            <div className={styles.processingMessage}>
+              <div className={styles.spinner} />
+              <span className={styles.processingText}>Processing your query...</span>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!inputMessage.trim() || isProcessing || !user || !currentChatId || !bankQueryService) {
+    if (!inputMessage.trim() || !bankQueryService || !currentChatId || isProcessing) {
       return;
     }
 
-    const userMessage = inputMessage.trim();
-    setInputMessage('');
     setIsProcessing(true);
+    setPendingUserMessage(inputMessage);
+    setInputMessage('');
     setError(null);
-    setPendingUserMessage(userMessage);
 
     try {
-      await bankQueryService.processQuery(userMessage, currentChatId);
-    } catch (err) {
-      console.error('Error processing query:', err);
+      await bankQueryService.processQuery(inputMessage, currentChatId);
+    } catch (error) {
+      console.error('Error processing query:', error);
       setError('Failed to process your query. Please try again.');
       setIsProcessing(false);
       setPendingUserMessage(null);
@@ -270,45 +333,6 @@ export default function ChatPage() {
     }
   };
 
-  const renderMessages = () => {
-    return (
-      <div className={styles.messagesWrapper}>
-        {messages.map((message) => (
-          <div key={message.id} className={styles.messageContainer}>
-            <div className={`${styles.messageHeader} ${message.isUser ? styles.userMessageHeader : styles.aiMessageHeader}`}>
-              {message.isUser ? 'You' : 'AI Assistant'}
-            </div>
-            <div className={`${styles.message} ${message.isUser ? styles.userMessage : styles.aiMessage}`}>
-              {message.content}
-            </div>
-          </div>
-        ))}
-        {pendingUserMessage && (
-          <div className={styles.messageContainer}>
-            <div className={`${styles.messageHeader} ${styles.userMessageHeader}`}>
-              You
-            </div>
-            <div className={`${styles.message} ${styles.userMessage}`}>
-              {pendingUserMessage}
-            </div>
-          </div>
-        )}
-        {isProcessing && (
-          <div className={styles.messageContainer}>
-            <div className={`${styles.messageHeader} ${styles.aiMessageHeader}`}>
-              AI Assistant
-            </div>
-            <div className={styles.processingMessage}>
-              <div className={styles.spinner} />
-              <span className={styles.processingText}>Processing your query...</span>
-            </div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-    );
-  };
-
   // Add console log to debug processing state
   useEffect(() => {
     if (isProcessing) {
@@ -320,19 +344,27 @@ export default function ChatPage() {
     return <LoadingScreen />;
   }
 
-  if (authError) {
+  if (error) {
     return (
-      <div className={styles.container}>
-        <div className={styles.error}>Authentication error: {authError.toString()}</div>
+      <div className={styles.errorContainer}>
+        <div className={styles.errorContent}>
+          <p className={styles.errorTitle}>Error</p>
+          <p className={styles.errorMessage}>{error}</p>
+          {isIndexBuilding && (
+            <div className={styles.errorActions}>
+              <p className={styles.errorHint}>This usually takes a few minutes. You can:</p>
+              <button
+                onClick={() => window.location.reload()}
+                className={styles.errorButton}
+              >
+                Refresh Page
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
-
-  if (!user) {
-    return null; // Will redirect in useEffect
-  }
-
-  const bankCustomer = user as unknown as BankCustomer;
 
   return (
     <div className={styles.container}>
@@ -340,17 +372,17 @@ export default function ChatPage() {
         <div className={styles.userInfo}>
           {user && (
             <>
-              <div className={styles.userName}>{(user as BankCustomer).name}</div>
+              <div className={styles.userName}>{user.name}</div>
               <div className={styles.userEmail}>{user.email}</div>
-              <div className={styles.companyId}>{(user as BankCustomer).companyId}</div>
+              <div className={styles.companyId}>{user.companyId}</div>
             </>
           )}
         </div>
-        
-        <button 
+
+        <button
           className={styles.newChatButton}
           onClick={createNewChat}
-          disabled={isProcessing || isIndexBuilding}
+          disabled={isProcessing}
         >
           <FiPlus size={18} />
           New Chat
@@ -385,17 +417,49 @@ export default function ChatPage() {
                   {chat.lastMessageTimestamp?.toDate().toLocaleString() || 'Just now'}
                 </div>
               </div>
-              <button
-                className={styles.deleteButton}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteChat(chat.id);
-                }}
-                disabled={isDeleting}
-                title="Delete chat"
-              >
-                <FiTrash2 size={16} />
-              </button>
+              <div className={styles.chatActions}>
+                {editingChatId === chat.id ? (
+                  <>
+                    <button
+                      className={styles.chatActionButton}
+                      onClick={() => handleRenameChat(chat.id)}
+                    >
+                      <FiCheck size={16} />
+                    </button>
+                    <button
+                      className={styles.chatActionButton}
+                      onClick={() => {
+                        setEditingChatId(null);
+                        setNewChatTitle('');
+                      }}
+                    >
+                      <FiX size={16} />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      className={styles.chatActionButton}
+                      onClick={() => {
+                        setEditingChatId(chat.id);
+                        setNewChatTitle(chat.title);
+                      }}
+                    >
+                      <FiEdit2 size={16} />
+                    </button>
+                    <button
+                      className={`${styles.chatActionButton} ${styles.deleteButton}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteChat(chat.id);
+                      }}
+                      disabled={isDeleting}
+                    >
+                      <FiTrash2 size={16} />
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           ))}
         </div>

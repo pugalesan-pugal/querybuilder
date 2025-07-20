@@ -21,8 +21,7 @@ if (typeof window !== 'undefined') {
   (window as any).process = {
     ...((window as any).process || {}),
     env: {
-      ...((window as any).process?.env || {}),
-      NEXT_PUBLIC_GEMINI_API_KEY: "AIzaSyDPl7JHgiBFrQ6qGUP1prtaHlupgoHPldg"
+      ...((window as any).process?.env || {})
     }
   };
 }
