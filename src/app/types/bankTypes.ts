@@ -205,4 +205,100 @@ export interface CompanyData {
   };
   loans?: Loan[];
   account_types?: string[];
+}
+
+export interface AuthorizedSignatory {
+  Aadhaar_Number: string;
+  Approval_Status: string;
+  Authorized_Since: string;
+  Contact_Number: string;
+  Date_of_Birth: string;
+  Designation: string;
+  Email_Address: string;
+  Full_Name: string;
+  Gender: string;
+  KYC_Documents_Provided: string[];
+  KYC_Status: string;
+  Nationality: string;
+  PAN_Number: string;
+  Passport_Number: string;
+  Residential_Address: string;
+  Signature_Specimen: string;
+  Signing_Authority_Limit: string;
+  Type_of_Signatory: string;
+}
+
+export interface WorkingCapitalFacility {
+  Associated_Account_Number: string;
+  Available_Limit: number;
+  Banking_Relationship_Manager: string;
+  Collateral_Type: string;
+  Collateral_Value: number;
+  Drawing_Power: number;
+  Facility_ID: string;
+  Interest_Payment_Frequency: string;
+  Interest_Rate: number;
+  Last_Review_Date: string;
+  Moratorium_Period: number;
+  Next_Review_Due: string;
+  Renewal_Date: string;
+  Repayment_Terms: string;
+  Review_Notes: string;
+  Sanctioned_Limit: number;
+  Security_Margin: number;
+  Utilization_Pattern: string;
+  Utilized_Limit: number;
+  WC_Facility_Status: string;
+  WC_Notes: string;
+  Working_Capital_Type: string;
+}
+
+export interface PersonalDetails {
+  Brand_Name: string;
+  Client_ID: string;
+  Company_Name: string;
+  Company_Type: string;
+  Country_of_Incorporation: string;
+  Country_of_Operation: string[];
+  Currency_Preference: string;
+  Date_of_Incorporation: string;
+  Industry_Sector: string;
+  Language_Preferences: string[];
+  Legal_Name: string;
+  Sub_sector: string;
+}
+
+export interface IndividualDetails {
+  User_ID: string;
+  Mother_Name: string;
+  Maternal_Status: string;
+  Primary_Point_of_Contact: string;
+  Full_Name: string;
+}
+
+export interface ExtendedCompanyData {
+  Authorized_Signatory: AuthorizedSignatory;
+  Bank_Accounts: any[];
+  Communication_Relationship: any;
+  Contact_Communication: any;
+  Credit_Reports: any;
+  Digital_Access_Security: any;
+  Individual_Details: IndividualDetails;
+  KYC_Compliance: any;
+  Loans: any[];
+  Personal_Details: PersonalDetails;
+  Personal_KYC_ID: any;
+  Registration_Tax_IDs: any;
+  Regulatory_Audit_Trail: any;
+  System_Metadata: any;
+  Trade_Finance: any;
+  Working_Capital_Facility: WorkingCapitalFacility;
+  createdAt: string;
+  email: string;
+  id: string;
+  isActive: boolean;
+  name: string;
+  services: any;
+  transactions: any[];
+  updatedAt: string;
 } 

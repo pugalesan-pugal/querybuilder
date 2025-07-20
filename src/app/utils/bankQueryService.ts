@@ -2,13 +2,17 @@ import { collection, doc, getDocs, query, where, writeBatch, updateDoc, setDoc, 
 import { db } from './firebase';
 import { NLPQueryService } from './nlpQueryService';
 import { OllamaService } from './ollamaService';
+import { FAQService } from './faqService';
+import { DataResolver } from './dataResolver';
 
 export class BankQueryService {
   private nlpService: NLPQueryService;
   private ollamaService: OllamaService;
+  private faqService: FAQService;
   private readonly companyId: string;
   private readonly userId: string;
   private companyData: any;
+  private isInitialized: boolean = false;
 
   constructor(companyId: string, userId: string) {
     if (!companyId) {
@@ -18,34 +22,138 @@ export class BankQueryService {
     this.userId = userId;
     this.nlpService = new NLPQueryService(companyId);
     this.ollamaService = new OllamaService();
+    this.faqService = new FAQService();
     console.log('Initializing BankQueryService with:', { companyId, userId });
+    
+    // Initialize data immediately
+    this.initialize().catch(console.error);
+  }
+
+  private async initialize(): Promise<void> {
+    try {
+      await this.loadCompanyData();
+      this.isInitialized = true;
+      console.log('BankQueryService initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize BankQueryService:', error);
+      throw error;
+    }
   }
 
   private async loadCompanyData(): Promise<void> {
     try {
+      console.log('Loading company data for:', this.companyId);
+      
+      // First check if user exists in bank_customers
+      const customerRef = doc(db, 'bank_customers', this.userId);
+      const customerDoc = await getDoc(customerRef);
+      console.log('Customer document check:', {
+        userId: this.userId,
+        exists: customerDoc.exists(),
+        data: customerDoc.exists() ? customerDoc.data() : null
+      });
+
       // Get company data from Firestore
       const companyRef = doc(db, 'companies', this.companyId);
       const companyDoc = await getDoc(companyRef);
       
       if (!companyDoc.exists()) {
+        console.error('Company document not found:', this.companyId);
         throw new Error('Company data not found');
       }
 
       this.companyData = companyDoc.data();
+      console.log('Raw Firebase data:', {
+        customerId: this.userId,
+        companyId: this.companyId,
+        fullData: this.companyData,
+        dataKeys: Object.keys(this.companyData),
+        hasIndividualDetails: !!this.companyData.Individual_Details,
+        individualDetails: this.companyData.Individual_Details
+      });
+
       // Initialize NLP service with company data
+      console.log('Setting company data in NLP service');
       this.nlpService.setCompanyData(this.companyData);
+      console.log('Company data set in NLP service');
     } catch (error) {
       console.error('Error loading company data:', error);
-      throw error;
+      // Retry loading data
+      await this.retryLoadData();
+    }
+  }
+
+  private async retryLoadData(attempts: number = 3, delay: number = 1000): Promise<void> {
+    for (let i = 0; i < attempts; i++) {
+      try {
+        console.log(`Retrying data load attempt ${i + 1}/${attempts}`);
+        
+        // First check if user exists in bank_customers
+        const customerRef = doc(db, 'bank_customers', this.userId);
+        const customerDoc = await getDoc(customerRef);
+        console.log('Customer document check (retry):', {
+          userId: this.userId,
+          exists: customerDoc.exists(),
+          data: customerDoc.exists() ? customerDoc.data() : null
+        });
+
+        const companyRef = doc(db, 'companies', this.companyId);
+        const companyDoc = await getDoc(companyRef);
+        
+        if (companyDoc.exists()) {
+          this.companyData = companyDoc.data();
+          console.log('Successfully loaded data on retry:', {
+            customerId: this.userId,
+            companyId: this.companyId,
+            hasIndividualDetails: !!this.companyData.Individual_Details,
+            dataKeys: Object.keys(this.companyData)
+          });
+          this.nlpService.setCompanyData(this.companyData);
+          return;
+        }
+      } catch (error) {
+        console.error(`Retry attempt ${i + 1} failed:`, error);
+        if (i < attempts - 1) {
+          await new Promise(resolve => setTimeout(resolve, delay));
+          delay *= 2; // Exponential backoff
+        }
+      }
+    }
+    throw new Error('Failed to load company data after retries');
+  }
+
+  private async ensureInitialized(): Promise<void> {
+    if (!this.isInitialized) {
+      console.log('Service not initialized, waiting for initialization...');
+      await this.initialize();
     }
   }
 
   async processQuery(queryText: string, chatId: string): Promise<string> {
-    console.log('BankQueryService.processQuery started:', { queryText, chatId, companyId: this.companyId, userId: this.userId });
+    console.log('BankQueryService.processQuery started:', { 
+      queryText, 
+      chatId, 
+      companyId: this.companyId, 
+      userId: this.userId,
+      isInitialized: this.isInitialized,
+      hasCompanyData: !!this.companyData,
+      companyDataPreview: this.companyData ? {
+        dataKeys: Object.keys(this.companyData),
+        hasAuthorizedSignatory: !!this.companyData.Authorized_Signatory,
+        hasResidentialAddress: !!this.companyData.Authorized_Signatory?.Residential_Address,
+        residentialAddress: this.companyData.Authorized_Signatory?.Residential_Address,
+        hasIndividualDetails: !!this.companyData.Individual_Details,
+        individualDetails: this.companyData.Individual_Details
+      } : null
+    });
 
     try {
-      // Load company data if not already loaded
+      // Ensure service is initialized
+      await this.ensureInitialized();
+
+      // Verify we have company data
       if (!this.companyData) {
+        console.log('No company data, attempting to load...');
         await this.loadCompanyData();
       }
 
@@ -53,35 +161,41 @@ export class BankQueryService {
       await this.storeUserMessage(chatId, queryText);
 
       // Process with NLP service
-      console.log('Calling NLP service...');
-      const nlpResponse = await this.nlpService.processQuery(queryText);
-      console.log('NLP service response:', nlpResponse);
-
-      let response: string;
+      console.log('Calling NLP service with company data:', {
+        hasCompanyData: !!this.companyData,
+        hasAuthorizedSignatory: !!this.companyData.Authorized_Signatory,
+        hasResidentialAddress: !!this.companyData.Authorized_Signatory?.Residential_Address,
+        residentialAddress: this.companyData.Authorized_Signatory?.Residential_Address,
+        dataKeys: Object.keys(this.companyData)
+      });
       
-      if (nlpResponse.hasData) {
-        // If NLP service found specific data, use its formatted response
-        response = nlpResponse.context;
-      } else {
-        // If no specific data found, use Ollama for general response
-        console.log('Calling Ollama service with context:', nlpResponse.context);
-        response = await this.ollamaService.generateBankingResponse(nlpResponse.context, queryText);
-      }
+      const nlpResponse = await this.nlpService.processQuery(queryText);
+      console.log('NLP service response:', {
+        hasData: nlpResponse.hasData,
+        data: nlpResponse.data,
+        metadata: nlpResponse.metadata,
+        context: nlpResponse.context
+      });
+
+      // Format context for Ollama service
+      const context = {
+        nlpResponse,
+        companyId: this.companyId,
+        userId: this.userId
+      };
+
+      // Generate response
+      const response = await this.ollamaService.generateBankingResponse(JSON.stringify(context), queryText);
 
       // Store AI response
       await this.storeAIResponse(chatId, response);
       console.log('AI response stored successfully');
 
-      // Generate and update chat title
-      await this.updateChatTitle(chatId);
-
       return response;
 
     } catch (error) {
       console.error('Error in processQuery:', error);
-      const errorMessage = "I apologize, but I encountered an error while processing your query. Please try again or rephrase your question.";
-      await this.storeAIResponse(chatId, errorMessage);
-      return errorMessage;
+      return "I'm having trouble accessing your information right now. Please try again in a moment.";
     }
   }
 
@@ -247,6 +361,17 @@ export class BankQueryService {
       console.log('AI response stored successfully');
     } catch (error) {
       console.error('Error storing AI response:', error);
+    }
+  }
+
+  async generateChatTitle(messages: { content: string, isUser: boolean }[]): Promise<string> {
+    try {
+      // Use the last message as the title
+      const lastMessage = messages[messages.length - 1];
+      return lastMessage ? lastMessage.content.substring(0, 50) + '...' : 'New Chat';
+    } catch (error) {
+      console.error('Error generating chat title:', error);
+      return 'New Chat';
     }
   }
 } 

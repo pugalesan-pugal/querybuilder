@@ -296,6 +296,7 @@ export class QueryProcessor {
   }
 
   private async generateStructuredResponse(data: any, query: string): Promise<string> {
+    try {
     // Format the data for better readability
     const formattedData = JSON.stringify(data, null, 2);
     const lowerQuery = query.toLowerCase();
@@ -307,47 +308,58 @@ export class QueryProcessor {
         lowerQuery.includes('paid') || lowerQuery.includes('payment')) {
       promptTemplate = `You are a banking assistant. Answer the following transaction-related query using ONLY the provided data.
 Follow these rules strictly:
-1. Be specific about the time period (last week/month/etc.)
-2. Mention the total amount for the specified period
+1. Be specific about amounts and dates
+2. Format all currency values in Indian format (e.g., ₹1,00,000)
 3. If a category is specified, focus on that category
-4. Format all currency values in Indian format (e.g., ₹1,00,000)
-5. List relevant transactions with dates and merchants
-6. If the query is about a specific merchant, highlight those transactions
-7. For card numbers, show only last 4 digits
-8. Include transaction status (completed/failed)
+4. List relevant transactions with dates if available
+5. For sensitive numbers, show only last 4 digits
+6. Include status information when available
 
 Query: ${query}
 
-Available Transaction Data:
+Available Data:
 ${formattedData}
 
 Generate a clear, natural response focusing on the transaction details.`;
-    } else if (Object.keys(data).some(key => ['name', 'email', 'phone', 'address', 'kyc'].includes(key))) {
-      promptTemplate = `You are a banking assistant. Answer the following personal information query using ONLY the provided data.
+      } else if (lowerQuery.includes('working capital') || lowerQuery.includes('limit') || 
+                 lowerQuery.includes('facility')) {
+        promptTemplate = `You are a banking assistant. Answer the following working capital query using ONLY the provided data.
 Follow these rules strictly:
-1. Mask sensitive information (show only last 4 digits of phone/account numbers)
-2. Show email in partially masked format (e.g., jo**@example.com)
-3. Format dates in Indian format (DD/MM/YYYY)
-4. If KYC information is requested, include status and document list
-5. For addresses, format them clearly with line breaks
-6. Never reveal full sensitive information
+1. Be specific about limits and utilization
+2. Format all currency values in Indian format
+3. Include relevant dates (review, renewal)
+4. Mention collateral details if relevant
+5. Include facility status and notes if available
 
 Query: ${query}
 
-Available Personal Data:
+Available Data:
 ${formattedData}
 
-Generate a clear, natural response focusing on the personal information requested.`;
+Generate a clear, natural response focusing on the working capital details.`;
+      } else if (lowerQuery.includes('company') || lowerQuery.includes('business')) {
+        promptTemplate = `You are a banking assistant. Answer the following company information query using ONLY the provided data.
+Follow these rules strictly:
+1. Use the official company name and type
+2. Include industry and sector information
+3. Mention incorporation details if relevant
+4. List operating countries if available
+5. Include language and currency preferences if relevant
+
+Query: ${query}
+
+Available Data:
+${formattedData}
+
+Generate a clear, natural response focusing on the company details.`;
     } else {
       promptTemplate = `You are a banking assistant. Answer the following query using ONLY the provided data.
 Follow these rules strictly:
 1. Be specific and precise
-2. Include relevant numbers and dates
-3. Format currency values in Indian format
-4. If data is not available, say so clearly
-5. For transactions, mention the time period and totals
-6. Mask sensitive data (show only last 4 digits)
-7. If the information requested is not in the data, politely say so
+2. Format all currency values in Indian format
+3. Show only last 4 digits of sensitive numbers
+4. Include relevant dates in DD/MM/YYYY format
+5. If data is not available, say so clearly
 
 Query: ${query}
 
@@ -358,6 +370,10 @@ Generate a clear, natural response using this data.`;
     }
 
     return await this.ollamaService.generateBankingResponse(promptTemplate, query);
+    } catch (error) {
+      console.error('Error generating structured response:', error);
+      return "I apologize, but I encountered an error while processing your query. Please try again or rephrase your question.";
+    }
   }
 
   private getValueFromPath(obj: any, path: string[]): any {
@@ -368,28 +384,83 @@ Generate a clear, natural response using this data.`;
     const lowerQuery = query.toLowerCase();
     const relevantData: { [key: string]: any } = {};
 
-    // Check each field for relevance
-    Object.entries(this.dataFields).forEach(([fieldName, field]) => {
-      if (field.keywords.some(keyword => lowerQuery.includes(keyword))) {
-        const value = this.getValueFromPath(this.companyData, field.path);
+    // Define field mappings for common queries
+    const fieldMappings = {
+      // Company Information
+      'company': ['Personal_Details', 'Company_Name'],
+      'legal name': ['Personal_Details', 'Legal_Name'],
+      'brand': ['Personal_Details', 'Brand_Name'],
+      'industry': ['Personal_Details', 'Industry_Sector'],
+      'sector': ['Personal_Details', 'Sub_sector'],
+      'incorporation': ['Personal_Details', 'Date_of_Incorporation'],
+      
+      // Individual Details
+      'name': ['Individual_Details', 'Full_Name'],
+      'mother': ['Individual_Details', 'Mother_Name'],
+      'user id': ['Individual_Details', 'User_ID'],
+      
+      // Working Capital
+      'working capital': ['Working_Capital_Facility'],
+      'limit': ['Working_Capital_Facility', 'Sanctioned_Limit'],
+      'utilized': ['Working_Capital_Facility', 'Utilized_Limit'],
+      'available': ['Working_Capital_Facility', 'Available_Limit'],
+      'collateral': ['Working_Capital_Facility', 'Collateral_Value'],
+      
+      // Authorized Signatory
+      'signatory': ['Authorized_Signatory'],
+      'authority': ['Authorized_Signatory', 'Signing_Authority_Limit'],
+      'designation': ['Authorized_Signatory', 'Designation'],
+      
+      // Bank Accounts
+      'account': ['Bank_Accounts'],
+      'balance': ['Bank_Accounts'],
+      
+      // Loans
+      'loan': ['Loans'],
+      'credit': ['Credit_Reports'],
+      
+      // KYC and Compliance
+      'kyc': ['KYC_Compliance'],
+      'compliance': ['KYC_Compliance'],
+      'regulatory': ['Regulatory_Audit_Trail'],
+      
+      // Trade Finance
+      'trade': ['Trade_Finance'],
+      'finance': ['Trade_Finance'],
+      
+      // Transactions
+      'transaction': ['transactions'],
+      'payment': ['transactions']
+    };
+
+    // Check each mapping against the query
+    for (const [key, paths] of Object.entries(fieldMappings)) {
+      if (lowerQuery.includes(key)) {
+        const value = this.getValueFromPath(this.companyData, paths);
         if (value !== undefined) {
-          relevantData[fieldName] = {
+          relevantData[key] = {
             value,
-            type: field.type,
-            path: field.path.join('.')
+            paths: paths.join('.')
           };
         }
       }
-    });
+    }
 
     // If no specific fields found, try to determine context
     if (Object.keys(relevantData).length === 0) {
-      // Check for general topics
       if (lowerQuery.includes('money') || lowerQuery.includes('financial')) {
-        relevantData.accounts = this.getValueFromPath(this.companyData, ['Bank_Accounts']);
-        relevantData.transactions = this.getValueFromPath(this.companyData, ['transactions']);
+        relevantData.financial = {
+          accounts: this.companyData.Bank_Accounts,
+          workingCapital: this.companyData.Working_Capital_Facility,
+          loans: this.companyData.Loans
+        };
       } else if (lowerQuery.includes('company') || lowerQuery.includes('business')) {
-        relevantData.companyInfo = this.getValueFromPath(this.companyData, ['Personal_Details']);
+        relevantData.company = this.companyData.Personal_Details;
+      } else if (lowerQuery.includes('person') || lowerQuery.includes('individual')) {
+        relevantData.individual = {
+          details: this.companyData.Individual_Details,
+          signatory: this.companyData.Authorized_Signatory
+        };
       }
     }
 
