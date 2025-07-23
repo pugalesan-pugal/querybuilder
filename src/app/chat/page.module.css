@@ -126,14 +126,20 @@
   position: relative;
   user-select: none;
   font-weight: 500;
+  display: flex;
+  align-items: center;
 }
 
 .userMessageHeader {
   text-align: right;
+  justify-content: flex-end;
 }
 
 .aiMessageHeader {
   text-align: left;
+  justify-content: flex-start;
+  width: 85%;
+  margin-left: 16px;
 }
 
 .message {
@@ -150,6 +156,7 @@
   align-items: center;
   transition: all 0.2s ease;
   position: relative;
+  z-index: 1;
 }
 
 .userMessage {
@@ -158,7 +165,6 @@
   margin-left: auto;
   border-bottom-right-radius: 4px;
   margin-right: 16px;
-  box-shadow: 0 4px 15px rgba(43, 127, 255, 0.2);
 }
 
 .aiMessage {
@@ -519,4 +525,49 @@
 
 .status.failed {
   color: #EF4444;
+}
+
+.downloadButtons {
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  background: #1a1b1e;
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.messageContainer:hover .downloadButtons {
+  opacity: 1;
+}
+
+.downloadButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: rgba(43, 127, 255, 0.1);
+  color: #2B7FFF;
+  border: 1px solid rgba(43, 127, 255, 0.2);
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  z-index: 11;
+}
+
+.downloadButton:hover {
+  background: rgba(43, 127, 255, 0.15);
+  border-color: rgba(43, 127, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.downloadButton:active {
+  transform: translateY(1px);
 } 

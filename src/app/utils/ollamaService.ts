@@ -6,7 +6,7 @@ export class OllamaService {
   private readonly MAX_RETRIES = 3;
   private readonly MAX_BACKOFF_DELAY = 5000;
   private readonly API_TIMEOUT = 60000;
-  private readonly DEFAULT_MODEL = 'llama2:7b';
+  private readonly DEFAULT_MODEL = 'tinyllama';
   private readonly DEFAULT_PORT = 11434;
   private readonly OLLAMA_API_URL: string;
   private readonly DEFAULT_ERROR_MESSAGE = "I apologize, but I'm currently experiencing technical difficulties. Please try again in a moment.";
@@ -169,19 +169,17 @@ export class OllamaService {
           prompt = `You are a helpful banking assistant. The user asked about their transactions.
 
 Here are the transaction details:
-- Time period: ${data.timeframe}
-- Total transactions: ${data.count}
-- Total amount: ₹${data.total.toLocaleString('en-IN')}
-- Categories: ${Object.entries(data.categories)
-  .map(([cat, amount]) => `${cat}: ₹${(amount as number).toLocaleString('en-IN')}`)
-  .join(', ')}
-
-Recent transactions:
-${data.transactions.slice(0, 5).map((t: any) => 
+${data.transactions.map((t: any) => 
   `- ${new Date(t.date).toLocaleDateString('en-IN')}: ₹${t.amount.toLocaleString('en-IN')} at ${t.merchant}`
 ).join('\n')}
 
-Please provide a natural, professional response summarizing this transaction information. Include the time period, total amount, and highlight any significant categories or patterns. Do not mention privacy or security concerns.`;
+Please provide a natural, professional response summarizing these transactions. Focus on:
+1. Total amount spent
+2. Key spending categories
+3. Notable transactions or patterns
+4. Time period of transactions
+
+Keep the response concise and factual. Do not mention privacy or security concerns. Do not use future dates. If no transactions match the criteria, simply state that no transactions were found for the specified period.`;
         } else {
           prompt = `You are a helpful banking assistant. The user asked: "${query}"
 

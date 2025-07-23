@@ -255,12 +255,14 @@ export class NLPQueryService {
     // Get current date for relative time calculations
     const now = new Date();
     let startDate: Date | null = null;
+    let endDate: Date = now;
     let timeframeDescription: string = '';
 
     // Determine time range
     switch (timeframe.toLowerCase()) {
       case 'last month':
         startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        endDate = new Date(now.getFullYear(), now.getMonth(), 0); // Last day of previous month
         timeframeDescription = 'last month';
         break;
       case 'this month':
@@ -284,7 +286,11 @@ export class NLPQueryService {
     // Filter transactions by date and category
     let filteredTransactions = transactions.filter((t: Transaction) => {
       const transactionDate = new Date(t.date);
-      const dateMatches = startDate ? transactionDate >= startDate : true;
+      // Ensure the transaction date is not in the future
+      if (transactionDate > now) {
+        return false;
+      }
+      const dateMatches = startDate ? (transactionDate >= startDate && transactionDate <= endDate) : true;
       const categoryMatches = category ? 
         t.category.toLowerCase().includes(category.toLowerCase()) : true;
       return dateMatches && categoryMatches;
@@ -311,8 +317,8 @@ export class NLPQueryService {
       total,
       categories,
       timeframe: timeframeDescription,
-      startDate: startDate?.toISOString(),
-      endDate: now.toISOString(),
+      startDate: startDate?.toISOString() || '',
+      endDate: endDate.toISOString(),
       count: filteredTransactions.length
     };
 
