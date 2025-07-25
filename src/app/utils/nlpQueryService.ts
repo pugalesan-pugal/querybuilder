@@ -260,6 +260,13 @@ export class NLPQueryService {
 
     // Determine time range
     switch (timeframe.toLowerCase()) {
+      case '3 months':
+      case 'three months':
+      case 'last 3 months':
+      case 'last three months':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+        timeframeDescription = 'the last three months';
+        break;
       case 'last month':
         startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         endDate = new Date(now.getFullYear(), now.getMonth(), 0); // Last day of previous month
@@ -338,35 +345,51 @@ export class NLPQueryService {
 
   private identifyQueryType(query: string): { type: string; subType?: string; timeframe?: string; category?: string } {
     const lowerQuery = query.toLowerCase().trim();
-    console.log('Identifying query type for:', lowerQuery);
+    console.log('========== Query Type Identification ==========');
+    console.log('Processing query:', lowerQuery);
 
     // Check for transaction-related queries first
     const transactionKeywords = ['transaction', 'spent', 'payment', 'transfer', 'expense', 'recent'];
-    if (transactionKeywords.some(keyword => lowerQuery.includes(keyword))) {
+    const hasTransactionKeywords = transactionKeywords.some(keyword => lowerQuery.includes(keyword));
+    console.log('Transaction keywords found:', hasTransactionKeywords);
+
+    if (hasTransactionKeywords) {
       const result: any = { type: 'transaction' };
 
       // Check for timeframe
-      if (lowerQuery.includes('last month')) {
+      console.log('Checking timeframe patterns...');
+      if (lowerQuery.includes('3 month') || lowerQuery.includes('three month')) {
+        result.timeframe = '3 months';
+        console.log('Timeframe identified: 3 months');
+      } else if (lowerQuery.includes('last month')) {
         result.timeframe = 'last month';
+        console.log('Timeframe identified: last month');
       } else if (lowerQuery.includes('this month')) {
         result.timeframe = 'this month';
+        console.log('Timeframe identified: this month');
       } else if (lowerQuery.includes('last week')) {
         result.timeframe = 'last week';
+        console.log('Timeframe identified: last week');
       } else if (lowerQuery.includes('today')) {
         result.timeframe = 'today';
+        console.log('Timeframe identified: today');
       } else if (lowerQuery.includes('recent')) {
-        // Default to last 7 days for recent transactions
         result.timeframe = 'last week';
+        console.log('Timeframe identified: recent (defaulting to last week)');
+      } else {
+        console.log('No specific timeframe found, will use default');
       }
 
       // Check for categories
-      const categories = ['food', 'travel', 'shopping', 'utilities', 'entertainment'];
+      console.log('Checking transaction categories...');
+      const categories = ['food', 'travel', 'shopping', 'utilities', 'entertainment', 'groceries'];
       const foundCategory = categories.find(cat => lowerQuery.includes(cat));
       if (foundCategory) {
         result.category = foundCategory;
+        console.log('Category identified:', foundCategory);
       }
 
-      console.log('Identified as transaction query:', result);
+      console.log('Final query type result:', result);
       return result;
     }
 

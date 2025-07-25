@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCustomAuth } from '../utils/customAuth';
 import { BankQueryService } from '../utils/bankQueryService';
@@ -48,20 +48,71 @@ export default function ChatPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const lastMessageRef = useRef<HTMLDivElement>(null);
   const chatInitializedRef = useRef(false);
   const initialMessageSentRef = useRef(false);
   const messageCache = useRef(new Set<string>());
+  const [isAtBottom, setIsAtBottom] = useState(true);
 
-  // Scroll to bottom whenever messages change
-  const scrollToBottom = () => {
+  // Scroll to bottom immediately
+  const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current.scrollIntoView({ block: 'end' });
+    }
+  }, []);
+
+  // Handle scroll position
+  useEffect(() => {
+    const container = chatContainerRef.current?.querySelector('.messages');
+    if (!container) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const bottom = scrollHeight - scrollTop - clientHeight < 50;
+      setIsAtBottom(bottom);
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (isAtBottom) {
+      scrollToBottom();
+    }
+  }, [messages, isAtBottom, scrollToBottom]);
+
+  // Scroll to bottom when sending a message
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputMessage.trim() || !bankQueryService || !currentChatId || isProcessing) {
+      return;
+    }
+
+    const messageToSend = inputMessage.trim();
+    setInputMessage('');
+    setIsProcessing(true);
+    setPendingUserMessage(messageToSend);
+    setError(null);
+    setIsAtBottom(true);
+    scrollToBottom();
+
+    try {
+      await bankQueryService.processQuery(messageToSend, currentChatId);
+    } catch (error) {
+      console.error('Error processing query:', error);
+      setError('Failed to process your query. Please try again.');
+      setIsProcessing(false);
+      setPendingUserMessage(null);
     }
   };
 
+  // Initial scroll to bottom
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, pendingUserMessage, isProcessing]);
+    setIsAtBottom(true);
+  }, []);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -164,9 +215,12 @@ export default function ChatPage() {
         setMessages(prevMessages => {
           // Merge new messages with existing ones, maintaining order
           const allMessages = [...prevMessages];
+          let hasNewMessages = false;
+
           sortedMsgs.forEach(msg => {
             if (!allMessages.some(m => m.id === msg.id)) {
               allMessages.push(msg);
+              hasNewMessages = true;
               // If we receive an AI message and it matches our pending user message context,
               // clear the processing state
               if (!msg.isUser && pendingUserMessage) {
@@ -175,12 +229,16 @@ export default function ChatPage() {
               }
             }
           });
+
+          if (hasNewMessages) {
+            setIsAtBottom(true);
+          }
+
           return allMessages.sort((a, b) => 
             a.timestamp.seconds - b.timestamp.seconds || 
             a.timestamp.nanoseconds - b.timestamp.nanoseconds
           );
         });
-        scrollToBottom();
       },
       (error) => {
         console.error('Error loading messages:', error);
@@ -196,7 +254,7 @@ export default function ChatPage() {
       setIsProcessing(false);
       setPendingUserMessage(null);
     };
-  }, [currentChatId, user, pendingUserMessage]);
+  }, [currentChatId, user, db, pendingUserMessage]);
 
   const createNewChat = async () => {
     if (!bankQueryService) return null;
@@ -231,95 +289,36 @@ export default function ChatPage() {
         '$1<span class="status $2">$2</span>');
   };
 
-  const renderMessages = () => {
+  // Render messages with memoization
+  const renderMessages = useMemo(() => {
     return (
       <div className={styles.messagesWrapper}>
-        {messages.map((message) => {
-          // Check if the message contains transaction data
-          let transactionData = null;
-          if (!message.isUser) {
-            try {
-              const content = message.content;
-              // Look for transaction data in the message
-              if (content.includes('transaction') || content.includes('spent')) {
-                // Extract amounts
-                const amounts = content.match(/₹[\d,]+(\.\d{2})?/g) || [];
-                // Extract dates
-                const dates = content.match(/\d{1,2}\/\d{1,2}\/\d{4}/g) || [];
-                // Extract merchants (after "at" or "from")
-                const merchants = content.match(/(?:at|from)\s+([A-Za-z\s]+)(?=[\s,.])/g)?.map(m => m.replace(/^(?:at|from)\s+/, '')) || [];
-                // Extract categories
-                const categories = content.match(/(?:Category|Categories):\s+([^.]+)/g)?.map(c => c.replace(/(?:Category|Categories):\s+/, '').split(',').map(s => s.trim())).flat() || [];
-
-                if (amounts.length > 0) {
-                  // Create structured transaction data
-                  transactionData = amounts.map((amount, index) => ({
-                    date: dates[index] || new Date().toLocaleDateString('en-IN'),
-                    amount: parseFloat(amount.replace(/[₹,]/g, '')),
-                    merchant: merchants[index] || 'Unknown Merchant',
-                    category: categories[index] || 'Uncategorized',
-                    status: 'Completed'
-                  }));
-
-                  console.log('Extracted transaction data:', transactionData);
-                }
-              }
-            } catch (error) {
-              console.error('Error extracting transaction data:', error);
-            }
-          }
-
-          return (
-            <div key={message.id} className={styles.messageContainer}>
+        {messages.map((message, index) => (
+          <div 
+            key={message.id} 
+            className={styles.messageContainer}
+          >
+            <div className={`${styles.messageHeader} ${message.isUser ? styles.userMessageHeader : styles.aiMessageHeader}`}>
+              {message.isUser ? 'You' : 'AI Assistant'}
+            </div>
+            <div className={`${styles.message} ${message.isUser ? styles.userMessage : styles.aiMessage}`}>
               {message.isUser ? (
-                <>
-                  <div className={`${styles.messageHeader} ${styles.userMessageHeader}`}>
-                    You
-                  </div>
-                  <div className={`${styles.message} ${styles.userMessage}`}>
-                    {message.content}
-                  </div>
-                </>
+                message.content
               ) : (
-                <>
-                  <div className={`${styles.messageHeader} ${styles.aiMessageHeader}`}>
-                    <span>AI Assistant</span>
-                    {transactionData && (
-                      <div className={styles.downloadButtons}>
-                        <button
-                          className={styles.downloadButton}
-                          onClick={() => ExportService.exportToExcel(transactionData)}
-                          title="Download as Excel"
-                        >
-                          <FiFileText size={16} />
-                          Excel
-                        </button>
-                        <button
-                          className={styles.downloadButton}
-                          onClick={() => ExportService.exportToPDF(transactionData)}
-                          title="Download as PDF"
-                        >
-                          <FiDownload size={16} />
-                          PDF
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <div className={`${styles.message} ${styles.aiMessage}`}>
-                    <div
-                      className="whitespace-pre-wrap"
-                      dangerouslySetInnerHTML={{
-                        __html: formatMessage(message.content)
-                      }}
-                    />
-                  </div>
-                </>
+                <div
+                  className="whitespace-pre-wrap"
+                  dangerouslySetInnerHTML={{
+                    __html: formatMessage(message.content)
+                  }}
+                />
               )}
             </div>
-          );
-        })}
+          </div>
+        ))}
         {pendingUserMessage && (
-          <div className={styles.messageContainer}>
+          <div 
+            className={styles.messageContainer}
+          >
             <div className={`${styles.messageHeader} ${styles.userMessageHeader}`}>
               You
             </div>
@@ -339,31 +338,10 @@ export default function ChatPage() {
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} className={styles.messagesEnd} />
       </div>
     );
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputMessage.trim() || !bankQueryService || !currentChatId || isProcessing) {
-      return;
-    }
-
-    setIsProcessing(true);
-    setPendingUserMessage(inputMessage);
-    setInputMessage('');
-    setError(null);
-
-    try {
-      await bankQueryService.processQuery(inputMessage, currentChatId);
-    } catch (error) {
-      console.error('Error processing query:', error);
-      setError('Failed to process your query. Please try again.');
-      setIsProcessing(false);
-      setPendingUserMessage(null);
-    }
-  };
+  }, [messages, pendingUserMessage, isProcessing, formatMessage]);
 
   const handleRenameChat = async (chatId: string) => {
     if (!bankQueryService || !newChatTitle.trim()) return;
@@ -532,8 +510,8 @@ export default function ChatPage() {
       </div>
 
       <div className={styles.chatContainer}>
-        <div className={styles.messages}>
-          {renderMessages()}
+        <div className={styles.messages} ref={chatContainerRef}>
+          {renderMessages}
         </div>
 
         {error && <div className={styles.error}>{error}</div>}

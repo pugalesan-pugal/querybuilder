@@ -40,8 +40,13 @@ export class FAQService {
         return;
       }
 
+      if (!db) {
+        console.error('Firebase not initialized');
+        return;
+      }
+
       console.log('Loading FAQs from Firebase...');
-      const faqSnapshot = await getDocs(collection(db, 'faq'));
+      const faqSnapshot = await getDocs(collection(db, 'faqs')); // Changed from 'faq' to 'faqs'
       this.faqList = faqSnapshot.docs.map(doc => ({
         ...doc.data() as FAQItem,
         id: doc.id
@@ -136,7 +141,12 @@ export class FAQService {
   // Method to preload specific categories or types of FAQs
   async preloadCategory(category: string) {
     try {
-      const categoryQuery = query(collection(db, 'faq'), where('category', '==', category));
+      if (!db) {
+        console.error('Firebase not initialized');
+        return;
+      }
+
+      const categoryQuery = query(collection(db, 'faqs'), where('category', '==', category)); // Changed from 'faq' to 'faqs'
       const snapshot = await getDocs(categoryQuery);
       const categoryFAQs = snapshot.docs.map(doc => ({
         ...doc.data() as FAQItem,

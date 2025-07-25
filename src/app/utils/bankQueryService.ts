@@ -130,22 +130,11 @@ export class BankQueryService {
   }
 
   async processQuery(queryText: string, chatId: string): Promise<string> {
-    console.log('BankQueryService.processQuery started:', { 
-      queryText, 
-      chatId, 
-      companyId: this.companyId, 
-      userId: this.userId,
-      isInitialized: this.isInitialized,
-      hasCompanyData: !!this.companyData,
-      companyDataPreview: this.companyData ? {
-        dataKeys: Object.keys(this.companyData),
-        hasAuthorizedSignatory: !!this.companyData.Authorized_Signatory,
-        hasResidentialAddress: !!this.companyData.Authorized_Signatory?.Residential_Address,
-        residentialAddress: this.companyData.Authorized_Signatory?.Residential_Address,
-        hasIndividualDetails: !!this.companyData.Individual_Details,
-        individualDetails: this.companyData.Individual_Details
-      } : null
-    });
+    console.log('========== Query Processing Start ==========');
+    console.log('Raw query:', queryText);
+    console.log('Chat ID:', chatId);
+    console.log('Company ID:', this.companyId);
+    console.log('User ID:', this.userId);
 
     try {
       // Ensure service is initialized
@@ -161,20 +150,14 @@ export class BankQueryService {
       await this.storeUserMessage(chatId, queryText);
 
       // Process with NLP service
-      console.log('Calling NLP service with company data:', {
-        hasCompanyData: !!this.companyData,
-        hasAuthorizedSignatory: !!this.companyData.Authorized_Signatory,
-        hasResidentialAddress: !!this.companyData.Authorized_Signatory?.Residential_Address,
-        residentialAddress: this.companyData.Authorized_Signatory?.Residential_Address,
-        dataKeys: Object.keys(this.companyData)
-      });
-      
+      console.log('Sending to NLP service:', queryText);
       const nlpResponse = await this.nlpService.processQuery(queryText);
       console.log('NLP service response:', {
         hasData: nlpResponse.hasData,
-        data: nlpResponse.data,
-        metadata: nlpResponse.metadata,
-        context: nlpResponse.context
+        type: nlpResponse.metadata?.type,
+        subType: nlpResponse.metadata?.subType,
+        timeframe: nlpResponse.metadata?.timeframe,
+        dataPreview: nlpResponse.data ? JSON.stringify(nlpResponse.data).substring(0, 200) + '...' : 'No data'
       });
 
       // Format context for Ollama service
@@ -184,16 +167,21 @@ export class BankQueryService {
         userId: this.userId
       };
 
+      console.log('Sending to Ollama service with context type:', nlpResponse.metadata?.type);
+      
       // Generate response
       const response = await this.ollamaService.generateBankingResponse(JSON.stringify(context), queryText);
+      console.log('Ollama response received, length:', response.length);
 
       // Store AI response
       await this.storeAIResponse(chatId, response);
       console.log('AI response stored successfully');
-
+      
+      console.log('========== Query Processing Complete ==========');
       return response;
 
     } catch (error) {
+      console.error('========== Query Processing Error ==========');
       console.error('Error in processQuery:', error);
       return "I'm having trouble accessing your information right now. Please try again in a moment.";
     }

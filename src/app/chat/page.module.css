@@ -71,7 +71,7 @@
   flex-direction: column;
   background: #1a1b1e;
   position: relative;
-  height: 100%;
+  height: 100vh;
   overflow: hidden;
 }
 
@@ -81,18 +81,37 @@
   padding: 24px;
   display: flex;
   flex-direction: column;
-  min-height: 0;
   width: 100%;
   max-width: 900px;
   margin: 0 auto;
   position: relative;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+  height: calc(100vh - 120px);
+  padding-bottom: 100px;
+}
+
+.messagesWrapper {
+  display: flex;
+  flex-direction: column;
   gap: 24px;
+  min-height: min-content;
+  width: 100%;
+  padding-bottom: 20px;
+  margin-top: auto;
 }
 
 .messages::-webkit-scrollbar {
-  display: none;
+  width: 8px;
+}
+
+.messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.messages::-webkit-scrollbar-thumb {
+  background-color: rgba(255,255,255,0.1);
+  border-radius: 4px;
 }
 
 .messageContainer {
@@ -104,6 +123,13 @@
   opacity: 1;
   transform-origin: top;
   animation: messageAppear 0.3s ease-out;
+  will-change: transform, opacity;
+}
+
+.messagesEnd {
+  float: left;
+  clear: both;
+  height: 0;
 }
 
 @keyframes messageAppear {
@@ -258,14 +284,17 @@
 }
 
 .inputArea {
+  position: fixed;
+  bottom: 0;
+  left: 300px; /* sidebar width */
+  right: 0;
   padding: 24px;
   background: #1a1b1e;
   border-top: 1px solid rgba(255,255,255,0.05);
-  position: sticky;
-  bottom: 0;
-  width: 100%;
   z-index: 10;
   box-shadow: 0 -10px 20px rgba(0, 0, 0, 0.1);
+  height: 100px;
+  backdrop-filter: blur(10px);
 }
 
 .inputForm {

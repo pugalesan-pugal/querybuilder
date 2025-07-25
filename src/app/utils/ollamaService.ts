@@ -168,18 +168,26 @@ export class OllamaService {
         if (contextData.nlpResponse.metadata?.type === 'transaction') {
           prompt = `You are a helpful banking assistant. The user asked about their transactions.
 
-Here are the transaction details:
+Here are the transaction details for ${data.timeframe}:
 ${data.transactions.map((t: any) => 
   `- ${new Date(t.date).toLocaleDateString('en-IN')}: ₹${t.amount.toLocaleString('en-IN')} at ${t.merchant}`
 ).join('\n')}
 
-Please provide a natural, professional response summarizing these transactions. Focus on:
-1. Total amount spent
-2. Key spending categories
-3. Notable transactions or patterns
-4. Time period of transactions
+Total transactions: ${data.count}
+Total amount: ₹${data.total.toLocaleString('en-IN')}
 
-Keep the response concise and factual. Do not mention privacy or security concerns. Do not use future dates. If no transactions match the criteria, simply state that no transactions were found for the specified period.`;
+Categories:
+${Object.entries(data.categories)
+  .map(([cat, amount]) => `- ${cat}: ₹${(amount as number).toLocaleString('en-IN')}`)
+  .join('\n')}
+
+Please provide a concise summary of these transactions focusing on:
+1. The time period covered
+2. Total spending and number of transactions
+3. Top spending categories
+4. Any notable large transactions
+
+Keep the response professional and factual. Do not add unnecessary explanations or mention privacy/security concerns.`;
         } else {
           prompt = `You are a helpful banking assistant. The user asked: "${query}"
 
@@ -189,9 +197,15 @@ Please provide a natural, professional response based on this information. Do no
         }
       } else {
         console.log('No specific data available, using general prompt');
-        prompt = `You are a helpful banking assistant. The user asked: "${query}"
+        prompt = `You are a banking assistant focused on helping customers with their banking needs. You should:
+1. Only answer questions related to banking, finance, and account information
+2. For non-banking questions (like weather, date, general chat), politely redirect to banking topics
+3. Keep responses concise and professional
+4. If you don't have specific information, ask the user to check their account or contact their bank branch
 
-Please provide a helpful response. If you need specific information, ask the user to provide more details.`;
+The user asked: "${query}"
+
+Please provide a focused banking-related response. If the query is not related to banking, politely explain that you can only assist with banking matters.`;
       }
 
       console.log('Sending prompt to Ollama:', { 

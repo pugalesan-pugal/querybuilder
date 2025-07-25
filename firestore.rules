@@ -2,67 +2,8 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper functions
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-
-    function getUserData(email) {
-      return get(/databases/$(database)/documents/bank_customers/$(email)).data;
-    }
-
-    function isValidUser(email) {
-      let userData = getUserData(email);
-      return userData != null && 
-             userData.email != null && 
-             userData.companyId != null && 
-             (userData.uid == request.auth.uid || userData.email == request.auth.token.email);
-    }
-
-    function belongsToCompany(resourceCompanyId, email) {
-      let userData = getUserData(email);
-      return userData != null && userData.companyId == resourceCompanyId;
-    }
-
-    // Allow read access to the bank_customers collection for valid users
-    match /bank_customers/{email} {
-      allow read: if isAuthenticated() && 
-                 (resource.data.uid == request.auth.uid || 
-                  request.auth.token.email == email);
-      
-      allow write: if isAuthenticated() && 
-                  (resource.data.uid == request.auth.uid || 
-                   request.auth.token.email == email);
-    }
-    
-    // Allow read access to companies for members of that company
-    match /companies/{companyId} {
-      allow read: if isAuthenticated() && exists(/databases/$(database)/documents/bank_customers/$(request.auth.token.email));
-      allow write: if false; // Only admins can modify through Firebase Console
-    }
-
-    // Allow read/write access to chat history for company members
-    match /chatHistory/{chatId} {
-      allow read: if isAuthenticated() && 
-                 belongsToCompany(resource.data.companyId, request.auth.token.email);
-      
-      allow create: if isAuthenticated() && 
-                   belongsToCompany(request.resource.data.companyId, request.auth.token.email) &&
-                   request.resource.data.userId == request.auth.token.email;
-      
-      allow update, delete: if isAuthenticated() && 
-                          belongsToCompany(resource.data.companyId, request.auth.token.email) &&
-                          resource.data.userId == request.auth.token.email;
-    }
-
-    // Allow read/write access to messages for company members
-    match /messages/{messageId} {
-      allow read: if isAuthenticated() && resource.data.companyId != null && 
-                 isValidUser(request.auth.token.email);
-      allow create: if isAuthenticated() && request.resource.data.companyId != null && 
-                   isValidUser(request.auth.token.email);
-      allow update, delete: if isAuthenticated() && resource.data.companyId != null && 
-                          resource.data.userId == request.auth.uid;
+    match /{document=**} {
+      allow read, write: if true;  // Allow both read and write access
     }
   }
 } 
