@@ -260,6 +260,10 @@ export class NLPQueryService {
 
     // Determine time range
     switch (timeframe.toLowerCase()) {
+      case '1 year':
+        startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+        timeframeDescription = 'the last year';
+        break;
       case '3 months':
       case 'three months':
       case 'last 3 months':
@@ -358,7 +362,10 @@ export class NLPQueryService {
 
       // Check for timeframe
       console.log('Checking timeframe patterns...');
-      if (lowerQuery.includes('3 month') || lowerQuery.includes('three month')) {
+      if (lowerQuery.includes('1 year') || lowerQuery.includes('one year') || lowerQuery.match(/last\s+year/)) {
+        result.timeframe = '1 year';
+        console.log('Timeframe identified: 1 year');
+      } else if (lowerQuery.includes('3 month') || lowerQuery.includes('three month')) {
         result.timeframe = '3 months';
         console.log('Timeframe identified: 3 months');
       } else if (lowerQuery.includes('last month')) {

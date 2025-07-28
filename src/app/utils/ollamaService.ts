@@ -6,7 +6,7 @@ export class OllamaService {
   private readonly MAX_RETRIES = 3;
   private readonly MAX_BACKOFF_DELAY = 5000;
   private readonly API_TIMEOUT = 60000;
-  private readonly DEFAULT_MODEL = 'tinyllama';
+  private readonly DEFAULT_MODEL = 'mistral';
   private readonly DEFAULT_PORT = 11434;
   private readonly OLLAMA_API_URL: string;
   private readonly DEFAULT_ERROR_MESSAGE = "I apologize, but I'm currently experiencing technical difficulties. Please try again in a moment.";
@@ -197,11 +197,19 @@ Please provide a natural, professional response based on this information. Do no
         }
       } else {
         console.log('No specific data available, using general prompt');
-        prompt = `You are a banking assistant focused on helping customers with their banking needs. You should:
-1. Only answer questions related to banking, finance, and account information
-2. For non-banking questions (like weather, date, general chat), politely redirect to banking topics
-3. Keep responses concise and professional
-4. If you don't have specific information, ask the user to check their account or contact their bank branch
+        prompt = `You are a professional banking assistant. You are strictly limited to answering questions related to banking, finance, account information, and banking services.
+
+Your Rules:
+
+If the question is not related to banking, politely say:
+"I'm here to assist only with banking-related queries. Please ask something related to your bank account, transactions, loans, or financial services."
+
+Do not engage in small talk, casual conversation, or answer questions about topics like weather, general knowledge, or current events.
+
+Keep answers concise, accurate, and professional.
+
+If a customer asks for information you do not have access to, respond with:
+"For specific details, please check your account or contact your nearest bank branch."
 
 The user asked: "${query}"
 

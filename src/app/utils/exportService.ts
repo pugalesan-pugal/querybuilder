@@ -4,14 +4,48 @@ import jsPDF from 'jspdf';
 export class ExportService {
   static async exportToExcel(transactions: any[]) {
     // Format transactions for Excel
-    const formattedData = transactions.map(t => ({
-      Date: new Date(t.date).toLocaleDateString('en-IN'),
-      Merchant: t.merchant,
-      Category: t.category,
-      Amount: t.amount.toLocaleString('en-IN'),
-      Status: t.status || 'Completed',
-      Remarks: t.remarks || ''
-    }));
+    const formattedData = transactions.map(t => {
+      // Parse the date first
+      let dateToUse;
+      try {
+        dateToUse = t.date ? new Date(t.date) : new Date();
+        // Check if the date is valid, if not use today's date
+        if (isNaN(dateToUse.getTime())) {
+          dateToUse = new Date();
+        }
+      } catch (e) {
+        console.log('Error parsing date:', e);
+        dateToUse = new Date();
+      }
+
+      // Handle category
+      let category = t.category || '';
+      // Convert any variations of "Uncategor" to "Uncategorized"
+      if (category.toLowerCase().includes('uncategor')) {
+        category = 'Uncategorized';
+      } else if (category.toLowerCase() === 'unknown' || !category) {
+        category = 'Uncategorized';
+      }
+
+      // Format the date with a leading zero for single digit days/months
+      const day = String(dateToUse.getDate()).padStart(2, '0');
+      const month = String(dateToUse.getMonth() + 1).padStart(2, '0');
+      const year = dateToUse.getFullYear();
+      const formattedDate = `${day}/${month}/${year}`;
+
+      return {
+        Date: formattedDate,
+        Category: category,
+        Amount: typeof t.amount === 'number' ? 
+          `₹${t.amount.toLocaleString('en-IN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          })}` : 
+          '₹0.00',
+        Status: t.status || 'Completed',
+        Remarks: t.remarks || ''
+      };
+    });
 
     // Create workbook and worksheet
     const ws = XLSX.utils.json_to_sheet(formattedData);
@@ -43,10 +77,10 @@ export class ExportService {
     doc.text(`Generated on: ${new Date().toLocaleDateString('en-IN')}`, 20, 30);
     
     // Add table headers
-    const headers = ['Date', 'Merchant', 'Category', 'Amount'];
+    const headers = ['Date', 'Category', 'Amount', 'Status'];
     let y = 40;
     const rowHeight = 10;
-    const colWidths = [30, 60, 40, 40];
+    const colWidths = [40, 50, 50, 30];
     let x = 20;
     
     doc.setFontSize(10);
@@ -64,11 +98,44 @@ export class ExportService {
       }
       
       x = 20;
+      // Parse the date first
+      let dateToUse;
+      try {
+        dateToUse = t.date ? new Date(t.date) : new Date();
+        // Check if the date is valid, if not use today's date
+        if (isNaN(dateToUse.getTime())) {
+          dateToUse = new Date();
+        }
+      } catch (e) {
+        console.log('Error parsing date:', e);
+        dateToUse = new Date();
+      }
+
+      // Handle category
+      let category = t.category || '';
+      // Convert any variations of "Uncategor" to "Uncategorized"
+      if (category.toLowerCase().includes('uncategor')) {
+        category = 'Uncategorized';
+      } else if (category.toLowerCase() === 'unknown' || !category) {
+        category = 'Uncategorized';
+      }
+
+      // Format the date with a leading zero for single digit days/months
+      const day = String(dateToUse.getDate()).padStart(2, '0');
+      const month = String(dateToUse.getMonth() + 1).padStart(2, '0');
+      const year = dateToUse.getFullYear();
+      const formattedDate = `${day}/${month}/${year}`;
+
       const row = [
-        new Date(t.date).toLocaleDateString('en-IN'),
-        t.merchant,
-        t.category,
-        `₹${t.amount.toLocaleString('en-IN')}`
+        formattedDate,
+        category,
+        typeof t.amount === 'number' ? 
+          `₹${t.amount.toLocaleString('en-IN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          })}` : 
+          '₹0.00',
+        t.status || 'Completed'
       ];
       
       row.forEach((cell, i) => {
