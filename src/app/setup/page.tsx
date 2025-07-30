@@ -69,8 +69,8 @@ export default function Setup() {
     setStatus('Initializing employees...');
 
     try {
-      await setupInitialEmployees();
-      setStatus('Successfully initialized employees!');
+      // await setupInitialEmployees();
+      // setStatus('Successfully initialized employees!');
       
       // Reload the employee list
       const { db } = initFirebase();
@@ -106,9 +106,9 @@ export default function Setup() {
     setUpdates([]);
 
     try {
-      const employeeUpdates = await updateEmployeeAccessCodes();
-      setUpdates(employeeUpdates);
-      setStatus('Successfully added access codes to all employees!');
+      // const employeeUpdates = await updateEmployeeAccessCodes();
+      // setUpdates(employeeUpdates);
+      // setStatus('Successfully added access codes to all employees!');
     } catch (error) {
       console.error('Setup error:', error);
       setError('Failed to add access codes. Check console for details.');
