@@ -1,4 +1,4 @@
-import { collection, getDocs, setDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, setDoc, doc, getDoc } from 'firebase/firestore';
 import { initFirebase } from './initFirebase';
 
 interface QueryTemplate {
@@ -53,8 +53,8 @@ export class QueryTemplateManager {
       let bestMatch: QueryTemplate | null = null;
       let highestScore = 0;
 
-      snapshot.docs.forEach(doc => {
-        const template = doc.data() as QueryTemplate;
+      snapshot.docs.forEach(docSnap => {
+        const template = docSnap.data() as QueryTemplate;
         const score = this.calculateMatchScore(userQuery, template.pattern);
         
         if (score > highestScore) {
@@ -63,10 +63,11 @@ export class QueryTemplateManager {
         }
       });
 
-      if (bestMatch && highestScore > 0.7) { // 70% match threshold
-        await this.updateTemplateUsage(bestMatch.id);
-        return bestMatch;
-      }
+    if (bestMatch && highestScore > 0.7) { // 70% match threshold
+  await this.updateTemplateUsage(bestMatch!);
+  return bestMatch;
+}
+
 
       return null;
     } catch (error) {
@@ -78,15 +79,12 @@ export class QueryTemplateManager {
   }
 
   private calculateMatchScore(query: string, pattern: string): number {
-    // Normalize strings
     const normalizedQuery = query.toLowerCase().trim();
     const normalizedPattern = pattern.toLowerCase().trim();
 
-    // Split into words
     const queryWords = normalizedQuery.split(/\s+/);
     const patternWords = normalizedPattern.split(/\s+/);
 
-    // Count matching words
     const matchingWords = queryWords.filter(word => 
       patternWords.some(pattern => pattern.includes(word) || word.includes(pattern))
     );
@@ -97,11 +95,10 @@ export class QueryTemplateManager {
   private async updateTemplateUsage(templateId: string): Promise<void> {
     try {
       const templateRef = doc(this.db, 'queryTemplates', templateId);
-      const template = (await getDocs(collection(this.db, 'queryTemplates'))).docs
-        .find(doc => doc.id === templateId);
+      const templateSnap = await getDoc(templateRef);
 
-      if (template) {
-        const data = template.data() as QueryTemplate;
+      if (templateSnap.exists()) {
+        const data = templateSnap.data() as QueryTemplate;
         await setDoc(templateRef, {
           ...data,
           lastUsed: new Date(),
@@ -114,4 +111,4 @@ export class QueryTemplateManager {
       }
     }
   }
-} 
+}
