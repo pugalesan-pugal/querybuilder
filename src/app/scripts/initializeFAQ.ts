@@ -49,6 +49,10 @@ const initialFAQs: FAQItem[] = [
 
 async function initializeFAQs() {
   try {
+    if (!db) {
+      throw new Error("Firestore is not initialized.");
+    }
+
     const batch = writeBatch(db);
     const faqCollection = collection(db, 'faq');
 
@@ -70,4 +74,4 @@ export { initializeFAQs, FAQItem };
 // Run directly if this is the main script
 if (require.main === module) {
   initializeFAQs().then(() => process.exit(0));
-} 
+}
