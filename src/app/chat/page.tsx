@@ -261,7 +261,7 @@ export default function ChatPage() {
                     status: 'Completed'
                   }));
 
-                  console.log('Extracted transaction data:', transactionData);
+                  //console.log('Extracted transaction data:', transactionData);
                 }
               }
             } catch (error) {
