@@ -1,5 +1,4 @@
 import { initFirebase, db, auth } from '../utils/initFirebase';
-
 import { collection, doc, setDoc, getDocs, deleteDoc } from 'firebase/firestore';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 
