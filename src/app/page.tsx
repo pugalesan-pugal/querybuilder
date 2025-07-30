@@ -4,6 +4,8 @@ import React, { useEffect } from 'react';
 import Link from 'next/link';
 import styles from './page.module.css';
 import Image from 'next/image';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faGithub, faLinkedin } from '@fortawesome/free-brands-svg-icons';
 
 export default function Home() {
   useEffect(() => {
@@ -40,17 +42,16 @@ export default function Home() {
         </div>
       </nav>
 
-      <div className={styles.socialLinks}>
-        <Link href="https://github.com" target="_blank" className={styles.socialLink}>
-          <i className="fab fa-github"></i>
-        </Link>
-        <Link href="https://twitter.com" target="_blank" className={styles.socialLink}>
-          <i className="fab fa-twitter"></i>
-        </Link>
-        <Link href="https://facebook.com" target="_blank" className={styles.socialLink}>
-          <i className="fab fa-facebook-f"></i>
-        </Link>
-      </div>
+<div className={styles.socialLinks}>
+  <Link href="https://github.com" target="_blank" className={styles.socialLink}>
+    <FontAwesomeIcon icon={faGithub} />
+  </Link>
+  <Link href="https://linkedin.com" target="_blank" className={styles.socialLink}>
+    <FontAwesomeIcon icon={faLinkedin} />
+  </Link>
+</div>
+
+
 
       <main className={styles.main}>
         <div className={styles.heroSection}>
