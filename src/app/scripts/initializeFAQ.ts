@@ -69,7 +69,9 @@ async function initializeFAQs() {
 }
 
 // Export for use in other scripts
-export { initializeFAQs, FAQItem };
+export { initializeFAQs };
+export type { FAQItem };
+
 
 // Run directly if this is the main script
 if (require.main === module) {
