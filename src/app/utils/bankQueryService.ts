@@ -5,6 +5,20 @@ import { OllamaService } from './ollamaService';
 import { FAQService } from './faqService';
 import { DataResolver } from './dataResolver';
 
+// Rename to avoid conflicts with other Metadata types
+interface NLPMetadata {
+  type: string;
+  subType?: string;
+  fieldName?: string;
+  timeframe?: string;
+}
+
+interface NLPResponse {
+  hasData: boolean;
+  metadata?: NLPMetadata; // Use the renamed interface
+  data?: any;
+}
+
 export class BankQueryService {
   private nlpService: NLPQueryService;
   private ollamaService: OllamaService;
@@ -151,7 +165,7 @@ export class BankQueryService {
 
       // Process with NLP service
       console.log('Sending to NLP service:', queryText);
-      const nlpResponse = await this.nlpService.processQuery(queryText);
+      const nlpResponse: NLPResponse = await this.nlpService.processQuery(queryText);
       console.log('NLP service response:', {
         hasData: nlpResponse.hasData,
         type: nlpResponse.metadata?.type,
@@ -363,4 +377,4 @@ export class BankQueryService {
       return 'New Chat';
     }
   }
-} 
+}
