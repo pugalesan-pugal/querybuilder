@@ -2,10 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
-import { initFirebase, app, db, auth } from '../utils/initFirebase';
-
-// import { updateEmployeeAccessCodes } from '../utils/updateEmployeeAccessCodes';
-// import { setupInitialEmployees } from '../utils/setupInitialEmployees';
+import { initFirebase } from '../utils/initFirebase';
 import styles from './page.module.css';
 
 interface EmployeeUpdate {
@@ -40,7 +37,7 @@ export default function Setup() {
         const employeesRef = collection(db, 'employees');
         const snapshot = await getDocs(employeesRef);
         const employeesList: Employee[] = [];
-        
+
         snapshot.forEach((doc) => {
           const data = doc.data();
           employeesList.push({
@@ -52,7 +49,7 @@ export default function Setup() {
             accessCode: data.accessCode
           });
         });
-        
+
         setEmployees(employeesList);
       } catch (error) {
         console.error('Error loading employees:', error);
@@ -69,15 +66,12 @@ export default function Setup() {
     setStatus('Initializing employees...');
 
     try {
-      // await setupInitialEmployees();
-      // setStatus('Successfully initialized employees!');
-      
       // Reload the employee list
       const { db } = initFirebase();
       const employeesRef = collection(db, 'employees');
       const snapshot = await getDocs(employeesRef);
       const employeesList: Employee[] = [];
-      
+
       snapshot.forEach((doc) => {
         const data = doc.data();
         employeesList.push({
@@ -89,8 +83,9 @@ export default function Setup() {
           accessCode: data.accessCode
         });
       });
-      
+
       setEmployees(employeesList);
+      setStatus('Successfully initialized employees!');
     } catch (error) {
       console.error('Initialization error:', error);
       setError('Failed to initialize employees. Check console for details.');
@@ -106,9 +101,9 @@ export default function Setup() {
     setUpdates([]);
 
     try {
-      // const employeeUpdates = await updateEmployeeAccessCodes();
-      // setUpdates(employeeUpdates);
-      // setStatus('Successfully added access codes to all employees!');
+      // Placeholder for future logic
+      // Simulate empty update
+      setStatus('Access code generation logic not implemented.');
     } catch (error) {
       console.error('Setup error:', error);
       setError('Failed to add access codes. Check console for details.');
@@ -121,7 +116,7 @@ export default function Setup() {
     <div className={styles.container}>
       <div className={styles.setupBox}>
         <h1 className={styles.title}>Employee Access Setup</h1>
-        
+
         {/* Existing Employees Section */}
         <div className={styles.section}>
           <h2>Existing Employees</h2>
@@ -153,6 +148,7 @@ export default function Setup() {
           )}
         </div>
 
+        {/* Access Code Section */}
         <div className={styles.section}>
           <h2>Generate Access Codes</h2>
           <p className={styles.description}>
@@ -162,7 +158,7 @@ export default function Setup() {
 
           {status && <p className={styles.status}>{status}</p>}
           {error && <p className={styles.error}>{error}</p>}
-          
+
           <button 
             className={styles.button}
             onClick={handleSetup}
@@ -192,4 +188,4 @@ export default function Setup() {
       </div>
     </div>
   );
-} 
+}
