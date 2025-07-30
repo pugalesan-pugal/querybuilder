@@ -20,6 +20,7 @@
     "@google/generative-ai": "^0.24.1",
     "compromise": "^14.14.4",
     "core-js": "^3.42.0",
+    "critters": "^0.0.23",
     "date-fns": "^4.1.0",
     "encoding": "^0.1.13",
     "firebase": "^11.9.1",
