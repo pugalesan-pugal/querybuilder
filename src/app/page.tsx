@@ -42,16 +42,14 @@ export default function Home() {
         </div>
       </nav>
 
-<div className={styles.socialLinks}>
-  <Link href="https://github.com" target="_blank" className={styles.socialLink}>
-    <FontAwesomeIcon icon={faGithub} />
-  </Link>
-  <Link href="https://linkedin.com" target="_blank" className={styles.socialLink}>
-    <FontAwesomeIcon icon={faLinkedin} />
-  </Link>
-</div>
-
-
+      <div className={styles.socialLinks}>
+        <Link href="https://github.com" target="_blank" className={styles.socialLink}>
+          <FontAwesomeIcon icon={faGithub} />
+        </Link>
+        <Link href="https://linkedin.com" target="_blank" className={styles.socialLink}>
+          <FontAwesomeIcon icon={faLinkedin} />
+        </Link>
+      </div>
 
       <main className={styles.main}>
         <div className={styles.heroSection}>
