@@ -122,6 +122,100 @@ export class OllamaService {
     }
   }
 
+  async analyzeIntent(query: string): Promise<{
+    type: string;
+    subType?: string;
+    timeframe?: string;
+    accountType?: string;
+    confidence?: number;
+  } | null> {
+    try {
+      // Ensure service is initialized
+      await this.initialize();
+      
+      const prompt = `You are an intent classifier for banking queries. Analyze the following query and return a JSON response with the classification.
+
+Query: "${query}"
+
+Classify the query into one of these types:
+- "transactions" - for questions about spending, payments, transaction history
+- "account" - for bank account details, balance, joint holders
+- "loan" - for loan information, EMI, outstanding amounts
+- "working_capital" - for working capital facility details
+- "company" - for company information, name, incorporation
+- "kyc" - for KYC status, documents, compliance
+- "trade_finance" - for LC, BG, invoice financing
+- "authorized_signatory" - for signatory information
+- "support" - for tickets, complaints, help
+- "credit" - for credit reports, scores, ratings
+- "personal" - for individual/personal details
+- "aadhaar_number" - for Aadhaar number queries
+- "general" - for other banking-related queries
+
+For transactions, also identify:
+- timeframe: "1 month", "3 months", "1 year", "last month", "this month", "last week", "today", etc.
+- accountType: any specific category mentioned (food, travel, shopping, etc.)
+
+For accounts, identify subType:
+- "joint_holders" - for joint holder information
+- "primary_holder" - for primary holder details
+- "balance" - for balance inquiries
+- "nominee" - for nominee information
+- "bank_details" - for IFSC, branch details
+
+For loans, identify subType:
+- "emi_details" - for EMI information
+- "outstanding" - for outstanding amounts
+- "status" - for loan status
+
+Return only a JSON object like:
+{
+  "type": "transactions",
+  "subType": "all",
+  "timeframe": "1 month",
+  "accountType": "food",
+  "confidence": 0.9
+}
+
+If unsure, return null.`;
+
+      console.log('Sending intent analysis prompt to Ollama');
+      
+      const response = await this.generateSimpleResponse(prompt);
+      if (!response) {
+        console.log('No response from Ollama for intent analysis');
+        return null;
+      }
+
+      console.log('Raw Ollama response:', response);
+
+      // Try to extract JSON from the response
+      try {
+        // Look for JSON in the response
+        const jsonMatch = response.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const jsonStr = jsonMatch[0];
+          const intentResult = JSON.parse(jsonStr);
+          
+          // Validate the result has required fields
+          if (intentResult && intentResult.type) {
+            console.log('Successfully parsed intent:', intentResult);
+            return intentResult;
+          }
+        }
+        
+        console.log('No valid JSON found in response');
+        return null;
+      } catch (parseError) {
+        console.error('Error parsing intent analysis response:', parseError);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error in analyzeIntent:', error);
+      return null;
+    }
+  }
+
   async generateBankingResponse(context: string, query: string): Promise<string> {
     try {
       // Ensure service is initialized
@@ -306,4 +400,4 @@ Please provide a focused banking-related response. If the query is not related t
       return 'New Chat';
     }
   }
-} 
+}

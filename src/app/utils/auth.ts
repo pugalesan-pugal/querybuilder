@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+
 import {
   getAuth,
   signInWithEmailAndPassword,
@@ -8,7 +9,7 @@ import {
   User
 } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import app, { db } from './initFirebase';
+import { app, db } from './initFirebase';
 
 interface AuthState {
   user: User | null;
@@ -167,3 +168,4 @@ export function useAuth() {
 
   return authState;
 } 
+

@@ -2,10 +2,6 @@ import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { getFirestore, Firestore, doc, getDoc } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
 
-let firebaseApp: FirebaseApp | null = null;
-let firestoreDb: Firestore | null = null;
-let firebaseAuth: Auth | null = null;
-
 const firebaseConfig = {
   apiKey: "AIzaSyBVwkSdXiPx2GHWRqEhe1-ZNBboNIMbyGc",
   authDomain: "query-builder-bot.firebaseapp.com",
@@ -15,9 +11,11 @@ const firebaseConfig = {
   appId: "1:511571415270:web:6e8e4f33791d04d1f1eb27"
 };
 
-// ✅ Renamed function to match import: `initFirebase`
+// Initialize Firebase services
 function initFirebase() {
   try {
+    let firebaseApp: FirebaseApp;
+    
     if (!getApps().length) {
       console.log('Initializing new Firebase app');
       firebaseApp = initializeApp(firebaseConfig);
@@ -26,19 +24,9 @@ function initFirebase() {
       firebaseApp = getApps()[0];
     }
 
-    if (!firestoreDb && firebaseApp) {
-      console.log('Initializing Firestore');
-      firestoreDb = getFirestore(firebaseApp);
-    }
-
-    if (!firebaseAuth && firebaseApp) {
-      console.log('Initializing Firebase Auth');
-      firebaseAuth = getAuth(firebaseApp);
-    }
-
-    if (!firebaseApp || !firestoreDb || !firebaseAuth) {
-      throw new Error('Failed to initialize one or more Firebase services');
-    }
+    console.log('Initializing Firestore and Auth');
+    const firestoreDb = getFirestore(firebaseApp);
+    const firebaseAuth = getAuth(firebaseApp);
 
     console.log('Firebase services initialized successfully');
     return { app: firebaseApp, db: firestoreDb, auth: firebaseAuth };
@@ -49,35 +37,26 @@ function initFirebase() {
   }
 }
 
-// ✅ Call initializer immediately
+// Initialize Firebase services immediately
 console.log('Starting Firebase initialization');
-let app: FirebaseApp | null = null;
-let db: Firestore | null = null;
-let auth: Auth | null = null;
+const { app, db, auth } = initFirebase();
+console.log('Firebase initialization completed');
 
-try {
-  const services = initFirebase();
-  app = services.app;
-  db = services.db;
-  auth = services.auth;
-  console.log('Firebase initialization completed');
-} catch (error) {
-  console.error('Critical error during Firebase initialization:', error);
-}
-
-// ✅ Export function and instances
-export { initFirebase }; // ✅ this fixes your import errors
+// Export the initialized services
 export { app, db, auth };
+
+// Export the initialization function for manual re-initialization if needed
+export { initFirebase };
 
 // Utility: Check connection
 export async function checkFirebaseConnection(): Promise<boolean> {
   try {
-    if (!firestoreDb) {
+    if (!db) {
       console.error('Firestore not initialized');
       return false;
     }
 
-    const testRef = doc(firestoreDb, '_connection_test_', 'test');
+    const testRef = doc(db, '_connection_test_', 'test');
     await getDoc(testRef);
     console.log('Firebase connection successful');
     return true;
@@ -87,20 +66,10 @@ export async function checkFirebaseConnection(): Promise<boolean> {
   }
 }
 
-// Utility: Reinitialize
-export async function reinitializeFirebase() {
-  try {
-    console.log('Attempting to reinitialize Firebase');
-    const services = initFirebase();
-    firebaseApp = services.app;
-    firestoreDb = services.db;
-    firebaseAuth = services.auth;
-    app = services.app;
-    db = services.db;
-    auth = services.auth;
-    return await checkFirebaseConnection();
-  } catch (error) {
-    console.error('Failed to reinitialize Firebase:', error);
-    return false;
+// Utility: Get services (for components that need guaranteed non-null values)
+export function getFirebaseServices() {
+  if (!app || !db || !auth) {
+    throw new Error('Firebase services not properly initialized');
   }
+  return { app, db, auth };
 }
