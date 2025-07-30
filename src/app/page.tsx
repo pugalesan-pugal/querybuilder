@@ -43,10 +43,10 @@ export default function Home() {
       </nav>
 
       <div className={styles.socialLinks}>
-        <Link href="https://github.com" target="_blank" className={styles.socialLink}>
+        <Link href="https://github.com/pugalesan-pugal" target="_blank" className={styles.socialLink}>
           <FontAwesomeIcon icon={faGithub} />
         </Link>
-        <Link href="https://linkedin.com" target="_blank" className={styles.socialLink}>
+        <Link href="https://www.linkedin.com/in/pugalesan-i/" target="_blank" className={styles.socialLink}>
           <FontAwesomeIcon icon={faLinkedin} />
         </Link>
       </div>
