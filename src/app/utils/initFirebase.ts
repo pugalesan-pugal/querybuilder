@@ -15,9 +15,9 @@ const firebaseConfig = {
   appId: "1:511571415270:web:6e8e4f33791d04d1f1eb27"
 };
 
-function initializeFirebase() {
+// ✅ Renamed function to match import: `initFirebase`
+function initFirebase() {
   try {
-    // Check if Firebase is already initialized
     if (!getApps().length) {
       console.log('Initializing new Firebase app');
       firebaseApp = initializeApp(firebaseConfig);
@@ -26,13 +26,11 @@ function initializeFirebase() {
       firebaseApp = getApps()[0];
     }
 
-    // Initialize Firestore
     if (!firestoreDb && firebaseApp) {
       console.log('Initializing Firestore');
       firestoreDb = getFirestore(firebaseApp);
     }
 
-    // Initialize Auth
     if (!firebaseAuth && firebaseApp) {
       console.log('Initializing Firebase Auth');
       firebaseAuth = getAuth(firebaseApp);
@@ -51,14 +49,14 @@ function initializeFirebase() {
   }
 }
 
-// Initialize Firebase immediately
+// ✅ Call initializer immediately
 console.log('Starting Firebase initialization');
 let app: FirebaseApp | null = null;
 let db: Firestore | null = null;
 let auth: Auth | null = null;
 
 try {
-  const services = initializeFirebase();
+  const services = initFirebase();
   app = services.app;
   db = services.db;
   auth = services.auth;
@@ -67,10 +65,11 @@ try {
   console.error('Critical error during Firebase initialization:', error);
 }
 
-// Export initialized instances
+// ✅ Export function and instances
+export { initFirebase }; // ✅ this fixes your import errors
 export { app, db, auth };
 
-// Export a function to check Firebase connection
+// Utility: Check connection
 export async function checkFirebaseConnection(): Promise<boolean> {
   try {
     if (!firestoreDb) {
@@ -78,7 +77,6 @@ export async function checkFirebaseConnection(): Promise<boolean> {
       return false;
     }
 
-    // Try to access Firestore
     const testRef = doc(firestoreDb, '_connection_test_', 'test');
     await getDoc(testRef);
     console.log('Firebase connection successful');
@@ -89,11 +87,11 @@ export async function checkFirebaseConnection(): Promise<boolean> {
   }
 }
 
-// Export a function to reinitialize Firebase if needed
+// Utility: Reinitialize
 export async function reinitializeFirebase() {
   try {
     console.log('Attempting to reinitialize Firebase');
-    const services = initializeFirebase();
+    const services = initFirebase();
     firebaseApp = services.app;
     firestoreDb = services.db;
     firebaseAuth = services.auth;
@@ -105,4 +103,4 @@ export async function reinitializeFirebase() {
     console.error('Failed to reinitialize Firebase:', error);
     return false;
   }
-} 
+}

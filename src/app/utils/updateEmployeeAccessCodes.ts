@@ -1,5 +1,6 @@
 import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
-import { initFirebase } from './initFirebase';
+import { initFirebase, auth, db } from './initFirebase';
+
 import type { Employee } from '../types/employee';
 
 // Function to generate a random access code

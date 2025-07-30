@@ -1,5 +1,6 @@
 import { collection, addDoc } from 'firebase/firestore';
-import { initFirebase } from './initFirebase';
+import { initFirebase, db } from './initFirebase';
+
 
 interface Employee {
   Name: string;

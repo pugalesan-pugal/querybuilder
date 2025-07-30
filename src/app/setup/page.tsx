@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
-import { initFirebase } from '../utils/initFirebase';
+import { initFirebase, app, db, auth } from '../utils/initFirebase';
+
 import { updateEmployeeAccessCodes } from '../utils/updateEmployeeAccessCodes';
 import { setupInitialEmployees } from '../utils/setupInitialEmployees';
 import styles from './page.module.css';
